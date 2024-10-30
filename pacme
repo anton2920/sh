@@ -1,0 +1,3 @@
+#!/bin/sh
+
+acme -l $1/.acme/dump

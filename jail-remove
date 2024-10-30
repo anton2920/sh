@@ -1,0 +1,26 @@
+#!/bin/sh
+
+usage()
+{
+	echo "usage: jail-remove jail-name"
+	exit 1
+}
+
+JAILS=/usr/local/jails
+
+case $# in
+1)
+	NAME=$1
+	;;
+*)
+	usage
+	;;
+esac
+
+CONTAINER=$JAILS/containers/$NAME
+if test -e $CONTAINER; then
+	jail -r $NAME >/dev/null 2>&1
+	umount $CONTAINER/dev >/dev/null 2>&1
+	chflags -R 0 $CONTAINER/
+	rm -rf $CONTAINER/
+fi

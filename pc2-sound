@@ -1,0 +1,4 @@
+#!/bin/sh
+
+pactl load-module module-loopback source=4
+pactl load-module module-loopback sink=4 channels=1

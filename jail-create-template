@@ -1,0 +1,40 @@
+#!/bin/sh
+
+usage()
+{
+	echo "usage: jail-create [--32] jail-name"
+	exit 1
+}
+
+set -e
+
+JAILS=/usr/local/jails
+
+ARCH=amd64
+case $# in
+2)
+	ARCH=i386
+	NAME=$2
+	;;
+1)
+	NAME=$1
+	;;
+*)
+	usage
+	;;
+esac
+
+VERSION=`freebsd-version | sed s/-p.*//`
+BASE=$JAILS/media/$ARCH/$VERSION-base.txz
+if test ! -e $BASE; then
+	mkdir -p $JAILS/media/$ARCH
+	fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/base.txz -o $BASE
+fi
+
+mkdir -p $JAILS/templates/$NAME
+tar -xf $BASE -C $JAILS/templates/$NAME
+cp /etc/resolv.conf $JAILS/templates/$NAME/etc/resolv.conf
+cp /etc/localtime $JAILS/templates/$NAME/etc/localtime
+if test $ARCH = amd64; then
+	freebsd-update -b $JAILS/templates/$NAME/ fetch install
+fi

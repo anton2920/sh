@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Volume for headphones.
+mixer vol 90
+mixer pcm 100
+
+# Volume for recording from second PC.
+mixer -f /dev/mixer4 mic 50
+mixer -f /dev/mixer4 line 50
+mixer -f /dev/mixer4 igain 50
+mixer -f /dev/mixer4 ogain 50
+mixer -f /dev/mixer4 mix 70
+
+# Constraining Wacom to the right monitor.
+xinput map-to-output 14 DVI-D-0
+xinput map-to-output 15 DVI-D-0
+xinput map-to-output 16 DVI-D-0
+xinput map-to-output 17 DVI-D-0

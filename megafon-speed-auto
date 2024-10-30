@@ -1,0 +1,4 @@
+#!/bin/sh
+
+curl --header "Referer: http://192.168.0.1/index.html" 'http://192.168.0.1/goform/goform_set_cmd_process?goformId=SET_BEARER_PREFERENCE&BearerPreference=NETWORK_auto'
+echo

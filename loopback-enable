@@ -1,0 +1,6 @@
+#!/bin/sh
+
+pactl load-module module-null-sink sink_name=CombinedOutput sink_properties=device.description=Combined-output-of-mic-and-playback
+pactl load-module module-loopback sink=CombinedOutput
+pactl load-module module-loopback sink=CombinedOutput
+

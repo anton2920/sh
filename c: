@@ -1,0 +1,3 @@
+#!/bin/sh
+
+ntfs-3g -o rw /dev/ada2p3 /media/c 
