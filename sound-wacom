@@ -1,18 +1,31 @@
 #!/bin/sh
 
-# Volume for headphones.
-mixer vol 90
-mixer pcm 100
+case `hostname` in
+	anton-FBSD)
+		# Volume for headphones.
+		mixer vol 90
+		mixer pcm 100
+		
+		# Volume for recording from second PC.
+		mixer -f /dev/mixer4 mic 50
+		mixer -f /dev/mixer4 line 50
+		mixer -f /dev/mixer4 igain 50
+		mixer -f /dev/mixer4 ogain 50
+		mixer -f /dev/mixer4 mix 70
+		
+		# Constraining Wacom to the right monitor.
+		xinput map-to-output 14 DVI-D-0
+		xinput map-to-output 15 DVI-D-0
+		xinput map-to-output 16 DVI-D-0
+		xinput map-to-output 17 DVI-D-0
+		;;
+	anton-DELL)
+		;;
+	anton-TFBSD)
+		mixer vol=0.7
+		mixer pcm=0.5
 
-# Volume for recording from second PC.
-mixer -f /dev/mixer4 mic 50
-mixer -f /dev/mixer4 line 50
-mixer -f /dev/mixer4 igain 50
-mixer -f /dev/mixer4 ogain 50
-mixer -f /dev/mixer4 mix 70
-
-# Constraining Wacom to the right monitor.
-xinput map-to-output 14 DVI-D-0
-xinput map-to-output 15 DVI-D-0
-xinput map-to-output 16 DVI-D-0
-xinput map-to-output 17 DVI-D-0
+		xinput set-prop 10 276 1
+		xinput set-prop 10 280 1
+		;;
+esac
