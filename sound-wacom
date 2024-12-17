@@ -5,6 +5,7 @@ case `hostname` in
 		# Volume for headphones.
 		mixer vol 90
 		mixer pcm 100
+		mixer mic 100
 		
 		# Volume for recording from second PC.
 		mixer -f /dev/mixer4 mic 50
