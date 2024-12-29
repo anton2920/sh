@@ -1,4 +1,11 @@
 #!/bin/sh
 
-pactl load-module module-loopback source=4
-pactl load-module module-loopback sink=4 channels=1
+if `which sound-bridge`; then
+	sound-bridge
+elif `which pactl`; then
+	pactl load-module module-loopback source=4
+	pactl load-module module-loopback sink=4 channels=1
+else
+	echo "No sound routing utilities found"
+	exit 1
+fi
