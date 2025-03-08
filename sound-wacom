@@ -15,10 +15,10 @@ case `hostname` in
 		mixer -f /dev/mixer4 mix 100
 		
 		# Constraining Wacom to the right monitor.
-		xinput map-to-output 14 DVI-D-0
-		xinput map-to-output 15 DVI-D-0
-		xinput map-to-output 16 DVI-D-0
-		xinput map-to-output 17 DVI-D-0
+		xinput map-to-output 'Wacom Graphire4 4x5 Pen stylus' DVI-D-0
+		xinput map-to-output 'Wacom Graphire4 4x5 Pad pad' DVI-D-0
+		xinput map-to-output 'Wacom Graphire4 4x5 Pen eraser' DVI-D-0
+		xinput map-to-output 'Wacom Graphire4 4x5 Pen cursor' DVI-D-0
 		;;
 	anton-DELL)
 		;;
