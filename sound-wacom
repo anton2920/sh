@@ -26,7 +26,7 @@ case `hostname` in
 		mixer vol=0.7
 		mixer pcm=0.5
 
-		xinput set-prop 10 276 1
-		xinput set-prop 10 280 1
+		xinput set-prop 10 "libinput Tapping Enabled" 1
+		xinput set-prop 10 "libinput Tapping Drag Lock Enabled" 1
 		;;
 esac
