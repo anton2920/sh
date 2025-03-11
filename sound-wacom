@@ -1,6 +1,17 @@
 #!/bin/sh
 
 case `hostname` in
+	anton-ASUS)
+		mixer vol 80
+		mixer rec 90
+		mixer mic 100
+		
+		xinput --set-prop 'ETPS/2 Elantech Touchpad' 'libinput Tapping Enabled' 1
+		xinput --set-prop 'ETPS/2 Elantech Touchpad' 'libinput Tapping Drag Lock Enabled' 1
+		xinput --set-prop 'ETPS/2 Elantech Touchpad' 'libinput Accel Speed' 0.3
+		;;
+	anton-DELL)
+		;;
 	anton-FBSD)
 		# Volume for headphones.
 		mixer vol 90
@@ -19,8 +30,6 @@ case `hostname` in
 		xinput map-to-output 'Wacom Graphire4 4x5 Pad pad' DVI-D-0
 		xinput map-to-output 'Wacom Graphire4 4x5 Pen eraser' DVI-D-0
 		xinput map-to-output 'Wacom Graphire4 4x5 Pen cursor' DVI-D-0
-		;;
-	anton-DELL)
 		;;
 	anton-TFBSD)
 		mixer vol=0.7
