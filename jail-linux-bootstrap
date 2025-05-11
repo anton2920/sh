@@ -1,0 +1,39 @@
+#!/bin/sh
+
+usage()
+{
+	echo "$0: name"
+	exit 1
+}
+
+NAME=$1
+CONTAINER=/usr/local/jails/containers/$NAME
+
+test $NAME != "" || usage
+
+test -d $CONTAINER || jail-create $NAME
+
+jail -cm \
+    name=$NAME \
+    host.hostname="$NAME" \
+    path="/usr/local/jails/containers/$NAME" \
+    interface="em0" \
+    ip4=inherit \
+    exec.start="/bin/sh /etc/rc" \
+    exec.stop="/bin/sh /etc/rc.shutdown" \
+    mount.devfs \
+    devfs_ruleset=4 \
+    allow.mount \
+    allow.mount.devfs \
+    allow.mount.fdescfs \
+    allow.mount.procfs \
+    allow.mount.linprocfs \
+    allow.mount.linsysfs \
+    allow.mount.tmpfs \
+    enforce_statfs=1
+
+jexec -u root $NAME
+
+mkdir -p $CONTAINER/tmp/.X11-unix $CONTAINER/compat/debian/tmp/.X11-unix $CONTAINER/compat/ubuntu/tmp/.X11-unix
+
+service jail onestop $NAME
