@@ -11,6 +11,12 @@ case `hostname` in
 		xinput --set-prop 'ETPS/2 Elantech Touchpad' 'libinput Accel Speed' 0.3
 		;;
 	anton-DELL)
+		# Volume for headphones.
+		mixer vol=0.9
+		mixer pcm=1.0
+
+		xinput --set-prop 'DELL0740:00 06CB:7E7E TouchPad' 'libinput Tapping Enabled' 1
+		xinput --set-prop 'DELL0740:00 06CB:7E7E TouchPad' 'libinput Tapping Drag Lock Enabled' 1
 		;;
 	anton-FBSD)
 		# Volume for headphones.
