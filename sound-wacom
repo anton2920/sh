@@ -44,4 +44,8 @@ case `hostname` in
 		xinput set-prop 'SynPS/2 Synaptics TouchPad' 'libinput Tapping Enabled' 1
 		xinput set-prop 'SynPS/2 Synaptics TouchPad' 'libinput Tapping Drag Lock Enabled' 1
 		;;
+	anton-VFBSD)
+		xrandr --output VGA-0 --mode "1920x1080"
+		xv -root -quit -rm 8 -geom 1920x1080 /usr/home/anton/Projects/fvwm98/sample.fvwmrc/xfce-blue.jpg
+		;;
 esac
