@@ -1,0 +1,7 @@
+#!/bin/sh
+
+INFERNO=$HOME/Projects/inferno-os
+PATH=$PATH:$INFERNO/FreeBSD/386/bin; export PATH
+EMU="-c0 -g 1920x1080"; export EMU
+
+emu wm/wm wm/logon -u $USER
