@@ -1,8 +1,10 @@
 #!/bin/sh
 
+PROJECT=`basename $0`
+
 usage()
 {
-	echo "usage: linux name"
+	echo "usage: $PROJECT name" >&2
 	exit 1
 }
 
@@ -10,11 +12,11 @@ NAME=$1
 
 test "$NAME" != "" || usage
 
-service linux start >/dev/null 2>&1
 service linux onestart >/dev/null 2>&1
+service linux start >/dev/null 2>&1
 
 service jail onestart $NAME >/dev/null 2>&1
-
+	
 jexec $NAME chroot /compat/$NAME /bin/bash
 
 service jail onestop $NAME >/dev/null 2>&1

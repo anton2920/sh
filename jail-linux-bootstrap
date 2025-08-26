@@ -1,8 +1,10 @@
 #!/bin/sh
 
+PROJECT=`basename $0`
+
 usage()
 {
-	echo "$0: name"
+	echo "usage: $PROJECT name" >&2
 	exit 1
 }
 
@@ -12,6 +14,9 @@ CONTAINER=/usr/local/jails/containers/$NAME
 test $NAME != "" || usage
 
 test -d $CONTAINER || jail-create $NAME
+
+service linux onestart >/dev/null 2>&1
+service linux start >/dev/null 2>&1
 
 jail -cm \
     name=$NAME \
@@ -32,8 +37,8 @@ jail -cm \
     allow.mount.tmpfs \
     enforce_statfs=1
 
-jexec -u root $NAME
+jexec $NAME su -
 
-mkdir -p $CONTAINER/tmp/.X11-unix $CONTAINER/compat/debian/tmp/.X11-unix $CONTAINER/compat/ubuntu/tmp/.X11-unix
+mkdir -p $CONTAINER/tmp/.X11-unix $CONTAINER/compat/$NAME/tmp/.X11-unix
 
 service jail onestop $NAME
