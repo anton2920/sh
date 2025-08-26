@@ -2,7 +2,7 @@
 
 PROJECT=`basename $0`
 
-parse-arg()
+arg()
 {
 	test "$1" = "--32" && ARCH="i386"
 	test "$1" = "--64" && ARCH="amd64"
@@ -17,15 +17,13 @@ usage()
 	exit 1
 }
 
-set -e
-
 VERSION=`freebsd-version | sed 's/-p.*//'`
 JAILS=/usr/local/jails
 TYPE="container"
 ARCH=`uname -p`
 
 while echo -n "$1" | grep '^-' >/dev/null; do
-	parse-arg $1
+	arg $1
 	shift
 done
 

@@ -1,23 +1,31 @@
 #!/bin/sh
 
+PROJECT=`basename $0`
+
+arg()
+{
+	test "$1" = "-t" && TYPE="template"
+	return 0
+}
+
 usage()
 {
-	echo "usage: jail-remove jail-name"
+	echo "usage: $PROJECT [-t] name" >&2
 	exit 1
 }
 
-JAILS=/usr/local/jails
+JAILS="/usr/local/jails"
+TYPE="container"
 
-case $# in
-1)
-	NAME=$1
-	;;
-*)
-	usage
-	;;
-esac
+while echo -n "$1" | grep '^-' >/dev/null; do
+	arg $1
+	shift
+done
 
-CONTAINER=$JAILS/containers/$NAME
+NAME=$1
+test "$NAME" != "" || usage
+
+CONTAINER=$JAILS/"$TYPE"s/$NAME
 if test -e $CONTAINER; then
 	jail -r $NAME >/dev/null 2>&1
 	umount $CONTAINER/dev >/dev/null 2>&1
