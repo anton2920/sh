@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -e
+
+NAME=FreeBSD
+
+TAP=tap0
+DRIVE=/dev/zvol/storage/VMs/bhyve/$NAME
+ISO=/usr/home/anton/Downloads/FreeBSD-14.1-RELEASE-i386-bootonly.iso
+
+CPU=`nproc`
+RAM=2G
+
+bhyve-init >/dev/null 2>&1
+
+bhyveload \
+	-c stdio \
+	-m $RAM \
+	-d $DRIVE \
+	$NAME
+
+bhyve \
+	-A -D -H -P -u -w \
+	-c $CPU \
+	-m $RAM \
+	-s 0,hostbridge \
+	-s 1,lpc \
+	-s 2,virtio-net,$TAP \
+	-s 3,virtio-blk,$DRIVE \
+	-l com1,stdio \
+	$NAME
+
+bhyvectl --destroy --vm=$NAME

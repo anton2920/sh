@@ -1,0 +1,37 @@
+#!/bin/sh
+
+set -e
+
+NAME=OpenBSD
+MAP=`dirname $0`/$NAME.map
+
+TAP=tap0
+DRIVE=/dev/zvol/storage/VMs/bhyve/$NAME
+ISO=/usr/home/anton/Downloads/install76.img
+
+CPU=`nproc`
+RAM=2048
+
+bhyve-init >/dev/null 2>&1
+
+cat <<EOF | grub-bhyve \
+	-m $MAP \
+	-M $RAM \
+	$NAME
+set root=(hd0,msdos4)
+kopenbsd -h com0 -r sd0a /bsd
+boot
+EOF
+
+bhyve \
+	-A -D -H -P -u -w \
+	-c $CPU \
+	-m "$RAM"M \
+	-s 0,amd_hostbridge \
+	-s 1,lpc \
+	-s 2,virtio-net,$TAP \
+	-s 3,virtio-blk,$DRIVE \
+	-l com1,stdio \
+	$NAME
+
+bhyvectl --destroy --vm=$NAME

@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+NAME=Debian
+MAP=`dirname $0`/$NAME.map
+
+TAP=tap0
+DRIVE=/dev/zvol/storage/VMs/bhyve/$NAME
+ISO=/usr/home/anton/Downloads/debian-12.8.0-amd64-netinst.iso
+
+CPU=`nproc`
+RAM=2048
+
+bhyve-init >/dev/null 2>&1
+
+grub-bhyve \
+	-m $MAP \
+	-M $RAM \
+	-r hd0,msdos1 \
+	$NAME
+
+bhyve \
+	-A -D -H -P -u -w \
+	-c $CPU \
+	-m "$RAM"M \
+	-s 0,hostbridge \
+	-s 1,lpc \
+	-s 2,virtio-net,$TAP \
+	-s 3,virtio-blk,$DRIVE \
+	-s 4,hda,play=/dev/dsp,rec=/dev/dsp \
+	-l com1,stdio \
+	$NAME
+
+bhyvectl --destroy --vm=$NAME
