@@ -1,40 +1,72 @@
 #!/bin/sh
 
+PROJECT=`basename $0`
+
+parse-arg()
+{
+	test "$1" = "--32" && ARCH="i386"
+	test "$1" = "--64" && ARCH="amd64"
+	test "$1" = "-t"   && TYPE="template"
+	test "$1" = "-u"   && UPDATE="on"
+	return 0
+}
+
 usage()
 {
-	echo "usage: jail-create [--32] jail-name"
+	echo "usage: $PROJECT [--32|--64] [-tu] name" >&2
 	exit 1
 }
 
 set -e
 
+VERSION=`freebsd-version | sed 's/-p.*//'`
 JAILS=/usr/local/jails
+TYPE="container"
+ARCH=`uname -p`
 
-ARCH=amd64
-case $# in
-2)
-	ARCH=i386
-	NAME=$2
-	;;
-1)
-	NAME=$1
-	;;
-*)
-	usage
-	;;
-esac
+while echo -n "$1" | grep '^-' >/dev/null; do
+	parse-arg $1
+	shift
+done
 
-VERSION=`freebsd-version | sed s/-p.*//`
+NAME=$1
+test "$NAME" != "" || usage
+
 BASE=$JAILS/media/$ARCH/$VERSION-base.txz
 if test ! -e $BASE; then
 	mkdir -p $JAILS/media/$ARCH
 	fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/base.txz -o $BASE
 fi
 
-mkdir -p $JAILS/containers/$NAME
-tar -xf $BASE -C $JAILS/containers/$NAME
-cp /etc/resolv.conf $JAILS/containers/$NAME/etc/resolv.conf
-cp /etc/localtime $JAILS/containers/$NAME/etc/localtime
-if test $ARCH = amd64; then
-	freebsd-update -b $JAILS/containers/$NAME/ fetch install
+CONTAINER=$JAILS/"$TYPE"s/$NAME
+if test ! -e $CONTAINER; then
+	mkdir -p $CONTAINER
+	tar -xf $BASE -C $CONTAINER
+	cp /etc/resolv.conf $CONTAINER/etc/resolv.conf
+	cp /etc/localtime $CONTAINER/etc/localtime
 fi
+
+test "$UPDATE" = "on" -a "$ARCH" = "amd64" && freebsd-update -b $CONTAINER fetch install
+
+CONFIG=/etc/jail.conf.d/$NAME.conf
+test ! -f $CONFIG && cat >$CONFIG <<EOF
+$NAME {
+	# STARTUP/LOGGING
+	exec.start = "/bin/sh /etc/rc";
+	exec.stop = "/bin/sh /etc/rc.shutdown";
+	exec.consolelog = "/var/log/jail_console_\${name}.log";
+
+	# PERMISSIONS
+	allow.raw_sockets;
+	exec.clean;
+	mount.devfs;
+
+	# HOSTNAME/PATH
+	host.hostname = "\${name}";
+	path = "$JAILS/containers/\${name}";
+
+	# NETWORK
+	ip4 = inherit;
+	interface = em0;
+}
+EOF
