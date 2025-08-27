@@ -16,7 +16,6 @@ test $NAME != "" || usage
 test -d $CONTAINER || jail-create $NAME
 
 service linux onestart >/dev/null 2>&1
-service linux start >/dev/null 2>&1
 
 jail -cm \
     name=$NAME \

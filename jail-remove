@@ -27,6 +27,7 @@ test "$NAME" != "" || usage
 
 CONTAINER=$JAILS/"$TYPE"s/$NAME
 if test -e $CONTAINER; then
+	service jail onestop $NAME >/dev/null 2>&1
 	jail -r $NAME >/dev/null 2>&1
 	umount $CONTAINER/dev >/dev/null 2>&1
 	chflags -R 0 $CONTAINER/

@@ -13,10 +13,7 @@ NAME=$1
 test "$NAME" != "" || usage
 
 service linux onestart >/dev/null 2>&1
-service linux start >/dev/null 2>&1
 
 service jail onestart $NAME >/dev/null 2>&1
-	
 jexec $NAME chroot /compat/$NAME /bin/bash
-
 service jail onestop $NAME >/dev/null 2>&1
