@@ -4,6 +4,7 @@ PROJECT=`basename $0`
 
 arg()
 {
+	test "$1" = "-c" && CONFIG="remove"
 	test "$1" = "-t" && TYPE="template"
 	return 0
 }
@@ -16,6 +17,7 @@ usage()
 
 JAILS="/usr/local/jails"
 TYPE="container"
+CONFIG="keep"
 
 while echo -n "$1" | grep '^-' >/dev/null; do
 	arg $1
@@ -33,3 +35,5 @@ if test -e $CONTAINER; then
 	chflags -R 0 $CONTAINER/
 	rm -rf $CONTAINER/
 fi
+
+test "$CONFIG" = "remove" && rm -f /etc/jail.conf.d/$NAME.conf
