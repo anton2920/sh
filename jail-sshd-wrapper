@@ -1,0 +1,6 @@
+#!/bin/sh
+
+test "$CONTAINER" != "" || CONTAINER=default
+test "$SSH_ORIGINAL_COMMAND" != "" || SSH_ORIGINAL_COMMAND="login -f root"
+
+jexec $CONTAINER $SSH_ORIGINAL_COMMAND
