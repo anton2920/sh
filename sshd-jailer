@@ -1,5 +1,6 @@
 #!/bin/sh
 
+test "$1" != "" && CONTAINER=$1
 test "$CONTAINER" != "" || CONTAINER=default
 test "$SSH_ORIGINAL_COMMAND" != "" || SSH_ORIGINAL_COMMAND="login -f root"
 
