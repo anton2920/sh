@@ -6,6 +6,7 @@ arg()
 {
 	test "$1" = "--32" && ARCH="i386"
 	test "$1" = "--64" && ARCH="amd64"
+	test "$1" = "-l32" && LIB32="install"
 	test "$1" = "-t"   && TYPE="template"
 	test "$1" = "-u"   && UPDATE="on"
 	return 0
@@ -13,7 +14,7 @@ arg()
 
 usage()
 {
-	echo "usage: $PROJECT [--32|--64] [-tu] name" >&2
+	echo "usage: $PROJECT [--32|--64] [-l32] [-tu] name" >&2
 	exit 1
 }
 
@@ -35,13 +36,22 @@ if test ! -e $BASE; then
 	mkdir -p $JAILS/media/$ARCH
 	fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/base.txz -o $BASE
 fi
+if test "$LIB32" = "install" -a "$ARCH" = "amd64"; then
+	LIB32=$JAILS/media/$ARCH/$VERSION-lib32.txz
+	if test ! -e $LIB32; then
+		mkdir -p $JAILS/media/$ARCH
+		fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/lib32.txz -o $LIB32
+	fi
+fi
 
 CONTAINER=$JAILS/"$TYPE"s/$NAME
 if test ! -e $CONTAINER; then
 	mkdir -p $CONTAINER
 	tar -xf $BASE -C $CONTAINER
+	test "$LIB32" != "" && tar -xf $LIB32 -C $CONTAINER
 	cp /etc/resolv.conf $CONTAINER/etc/resolv.conf
 	cp /etc/localtime $CONTAINER/etc/localtime
+	cp /etc/machine-id $CONTAINER/etc/machine-id
 fi
 
 test "$UPDATE" = "on" -a "$ARCH" = "amd64" && freebsd-update -b $CONTAINER fetch install
@@ -56,10 +66,6 @@ $NAME {
 	exec.consolelog = "/var/log/jail_console_\${name}.log";
 	exec.clean;
 
-	# PERMISSIONS
-	allow.raw_sockets;
-	mount.devfs;
-
 	# HOSTNAME/PATH
 	host.hostname = "\${name}";
 	path = "$JAILS/$TYPES/\${name}";
@@ -67,5 +73,11 @@ $NAME {
 	# NETWORK
 	ip4 = inherit;
 	interface = em0;
+
+	# PERMISSIONS
+	allow.raw_sockets;
+
+	# MOUNTS
+	mount.devfs;	
 }
 EOF
