@@ -1,0 +1,100 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+arg()
+{
+	test "$1" = "-proton"	&& PROTON="install"
+	test "$1" = "-u"	&& UPDATE="-u"
+	return 0
+}
+
+usage()
+{
+	echo "usage: $PROJECT [-u] [name]" >&2
+	exit 1
+}
+
+while echo -n "$1" | grep '^-' >/dev/null; do
+	arg $1
+	shift
+done
+
+NAME=$1
+test "$NAME" != "" || NAME=steam
+
+CONFIG=/etc/jail.conf.d/$NAME.conf
+cat >$CONFIG <<EOF
+$NAME {
+	# STARTUP/LOGGING
+	exec.start = "/bin/sh /etc/rc";
+	exec.stop = "/bin/sh /etc/rc.shutdown";
+	exec.consolelog = "/var/log/jail_console_\${name}.log";
+	exec.clean;
+
+	# HOSTNAME/PATH
+	host.hostname = "\${name}";
+	path = "/usr/local/jails/containers/\${name}";
+
+	# NETWORK
+	ip4 = inherit;
+	interface = em0;
+
+	# PERMISSIONS
+	allow.mount;
+	allow.mount.linprocfs;
+	allow.mount.linsysfs;
+	allow.mount.devfs;
+	allow.mount.fdescfs;
+	allow.mount.tmpfs;
+	allow.mount.nullfs;
+	allow.raw_sockets;
+	enforce_statfs=1;
+	
+	# ENVIRONMENTS
+	linux=new;
+	sysvmsg=new;
+	sysvsem=new;
+	sysvshm=new;
+
+	# MOUNTS
+	devfs_ruleset="666";
+	mount.devfs;
+	mount.procfs;
+}
+EOF
+
+RULES=/etc/devfs.rules
+grep "devfsrules_unhide_jail=666" $RULES >/dev/null 2>&1 || cat >>$RULES <<EOF
+
+[devfsrules_unhide_jail=666]
+add unhide
+EOF
+
+JAIL=/usr/local/jails/containers/$NAME
+jail-create -l32 $UPDATE $NAME
+mkdir -p $JAIL/home/root $JAIL/tmp >/dev/null 2>&1
+touch $JAIL/etc/fstab
+
+service linux onestart >/dev/null 2>&1
+service jail onestart $NAME >/dev/null 2>&1
+
+pkg -j $NAME install -y nvidia-driver linux-steam-utils linux-nvidia-libs
+sysrc -j $NAME linux_enable="YES"
+
+if test "$PROTON" = "install"; then
+	pkg -j $NAME install -y wine-proton libc6-shim python3
+	jexec $NAME /usr/local/wine-proton/bin/pkg32.sh install wine-proton mesa-dri
+	PKG=/usr/local/wine-proton/bin/pkg32.sh
+	jexec $NAME /bin/sh -c "sed '/echo/d;/exit/d' $PKG >$PKG-patched && chmod +x $PKG-patched && $PKG-patched install -y wine-proton mesa-dri gstreamer1-plugins-mpg123"
+
+	WINEENV=/usr/local/steam-utils/bin/lsu-wine-env
+	jexec $NAME /bin/sh -c "sed '/script as root/d' $WINEENV >$WINEENV-patched && chmod +x $WINEENV-patched && mv $WINEENV-patched $WINEENV"
+fi
+
+BOOTSTRAP=/usr/local/steam-utils/bin/lsu-bootstrap
+jexec $NAME /bin/sh -c "sed '/script as root/d' $BOOTSTRAP >$BOOTSTRAP-patched && chmod +x $BOOTSTRAP-patched && $BOOTSTRAP-patched --allow-stealing-my-passwords,-browser-history-and-ssh-keys"
+
+jexec $NAME /bin/sh -c "mkdir -p /var/lib/dbus && /usr/local/bin/dbus-uuidgen --ensure"
+
+service jail onestop $NAME >/dev/null 2>&1

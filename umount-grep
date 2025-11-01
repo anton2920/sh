@@ -1,0 +1,16 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+usage()
+{
+	echo "usage: $PROJECT regex" >&2
+	exit 1
+}
+
+REGEX=$1
+test "$REGEX" != "" || usage
+
+for m in `mount | cut -d ' ' -f 3 | grep $REGEX | sort -r`; do
+	umount $m
+done
