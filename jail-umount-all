@@ -11,4 +11,5 @@ usage()
 NAME=$1
 test "$NAME" != "" || usage
 
+umount-grep "/usr/local/jails/containers/$NAME" >/dev/null 2>&1
 umount-grep "/usr/local/jails/containers/$NAME"

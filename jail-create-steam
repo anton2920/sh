@@ -42,12 +42,12 @@ $NAME {
 
 	# PERMISSIONS
 	allow.mount;
-	allow.mount.linprocfs;
-	allow.mount.linsysfs;
 	allow.mount.devfs;
 	allow.mount.fdescfs;
-	allow.mount.tmpfs;
+	allow.mount.linprocfs;
+	allow.mount.linsysfs;
 	allow.mount.nullfs;
+	allow.mount.tmpfs;
 	allow.raw_sockets;
 	enforce_statfs=1;
 	
@@ -58,7 +58,7 @@ $NAME {
 	sysvshm=new;
 
 	# MOUNTS
-	devfs_ruleset="666";
+	devfs_ruleset=666;
 	mount.devfs;
 	mount.procfs;
 }
@@ -76,15 +76,19 @@ jail-create -l32 $UPDATE $NAME
 mkdir -p $JAIL/home/root $JAIL/tmp >/dev/null 2>&1
 touch $JAIL/etc/fstab
 
-service linux onestart >/dev/null 2>&1
+PROFILE=$JAIL/root/.profile
+grep 'DISPLAY' $PROFILE >/dev/null || echo 'DISPLAY=:0; export DISPLAY' >>$PROFILE
+sed 's/HOME=\/root/HOME=\/home\/root/' $PROFILE >$PROFILE-patched
+mv $PROFILE-patched $PROFILE
+
+service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
 
-pkg -j $NAME install -y nvidia-driver linux-steam-utils linux-nvidia-libs
+pkg -j $NAME install -y linux-steam-utils linux-nvidia-libs
 sysrc -j $NAME linux_enable="YES"
 
 if test "$PROTON" = "install"; then
-	pkg -j $NAME install -y wine-proton libc6-shim python3
-	jexec $NAME /usr/local/wine-proton/bin/pkg32.sh install wine-proton mesa-dri
+	pkg -j $NAME install -y wine-proton libc6-shim python3 nvidia-driver
 	PKG=/usr/local/wine-proton/bin/pkg32.sh
 	jexec $NAME /bin/sh -c "sed '/echo/d;/exit/d' $PKG >$PKG-patched && chmod +x $PKG-patched && $PKG-patched install -y wine-proton mesa-dri gstreamer1-plugins-mpg123"
 
@@ -97,4 +101,4 @@ jexec $NAME /bin/sh -c "sed '/script as root/d' $BOOTSTRAP >$BOOTSTRAP-patched &
 
 jexec $NAME /bin/sh -c "mkdir -p /var/lib/dbus && /usr/local/bin/dbus-uuidgen --ensure"
 
-service jail onestop $NAME >/dev/null 2>&1
+service jail onestop $NAME >/dev/null

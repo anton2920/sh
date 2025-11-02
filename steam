@@ -3,6 +3,7 @@
 arg()
 {
 	test "$1" = "-i" && INTERACTIVE="yes"
+	return 0
 }
 
 usage()
@@ -22,11 +23,11 @@ test "$NAME" != "" || NAME=steam
 JAIL=/usr/local/jails/containers/$NAME
 
 kldload nullfs >/dev/null 2>&1
-sysctl security.bsd.unprivileged_chroot=1 >/dev/null 2>&1
-sysctl vfs.usermount=1 >/dev/null 2>&1
+sysctl security.bsd.unprivileged_chroot=1 >/dev/null
+sysctl vfs.usermount=1 >/dev/null
 
-xhost + >/dev/null 2>&1
-service linux onestart >/dev/null 2>&1
+xhost +local:$NAME >/dev/null
+service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
 
 mount -t nullfs /tmp $JAIL/tmp
@@ -42,6 +43,4 @@ else
 fi
 
 service jail onestop $NAME >/dev/null 2>&1
-
-jail-umount-all $NAME >/dev/null 2>&1
 jail-umount-all $NAME
