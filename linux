@@ -16,10 +16,16 @@ xhost +local:$NAME >/dev/null
 
 service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
-mount -t nullfs -o nocover /tmp $JAIL/compat/linux/tmp
 
 jexec $NAME service linux start
-jexec $NAME chroot /compat/linux login -f root
+
+if test -e $JAIL/compat/linux/bin/login; then	
+	mount -t nullfs -o nocover /tmp $JAIL/compat/linux/tmp
+	jexec $NAME chroot /compat/linux login -f root
+else
+	mount -t nullfs -o nocover /tmp $JAIL/tmp
+	jexec $NAME login -f root
+fi
 
 service jail onestop $NAME >/dev/null 2>&1
 jail-umount-all $NAME

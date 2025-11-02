@@ -11,7 +11,7 @@ arg()
 
 usage()
 {
-	echo "usage: $PROJECT [-iu] [name] base" >&2
+	echo "usage: $PROJECT [-iu] [name] [base]" >&2
 	exit 1
 }
 
@@ -24,7 +24,7 @@ NAME=$1
 test "$NAME" != "" || NAME=linux
 
 BASE=$2
-test "$BASE" != "" || usage
+test "$BASE" != "" || BASE=none
 
 CONFIG=/etc/jail.conf.d/$NAME.conf
 test -f "$CONFIG" || cat >$CONFIG <<EOF
@@ -65,35 +65,37 @@ EOF
 JAIL=/usr/local/jails/containers/$NAME
 jail-create $NAME
 
-service linux onestart >/dev/null
-
-jail -cm \
-    name=$NAME \
-    host.hostname="$NAME" \
-    path="$JAIL" \
-    interface="em0" \
-    ip4=inherit \
-    exec.start="/bin/sh /etc/rc" \
-    exec.stop="/bin/sh /etc/rc.shutdown" \
-    mount.devfs \
-    devfs_ruleset=4 \
-    allow.mount \
-    allow.mount.devfs \
-    allow.mount.fdescfs \
-    allow.mount.procfs \
-    allow.mount.linprocfs \
-    allow.mount.linsysfs \
-    allow.mount.tmpfs \
-    enforce_statfs=1
-
 mkdir -p $JAIL/tmp $JAIL/compat/linux/tmp
-sysrc -j $NAME linux_enable="YES"
+echo 'linux_enable="YES"' >$JAIL/etc/rc.conf
 
-if test "$INTERACTIVE" = "on"; then
-	jexec $NAME login -f root
-else
-	pkg -j $NAME install -y debootstrap
-	jexec $NAME debootstrap $BASE /compat/linux
+if test "$BASE" != "none"; then
+	service linux onestart >/dev/null
+
+	jail -cm \
+		name=$NAME \
+		host.hostname="$NAME" \
+		path="$JAIL" \
+		interface="em0" \
+		ip4=inherit \
+		exec.start="/bin/sh /etc/rc" \
+		exec.stop="/bin/sh /etc/rc.shutdown" \
+		mount.devfs \
+		devfs_ruleset=4 \
+		allow.mount \
+		allow.mount.devfs \
+		allow.mount.fdescfs \
+		allow.mount.procfs \
+		allow.mount.linprocfs \
+		allow.mount.linsysfs \
+		allow.mount.tmpfs \
+		enforce_statfs=1
+
+	if test "$INTERACTIVE" = "on"; then
+		jexec $NAME login -f root
+	else
+		pkg -j $NAME install -y debootstrap
+		jexec $NAME debootstrap $BASE /compat/linux
+	fi
+
+	service jail onestop $NAME >/dev/null
 fi
-
-service jail onestop $NAME >/dev/null

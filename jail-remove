@@ -15,9 +15,7 @@ usage()
 	exit 1
 }
 
-JAILS="/usr/local/jails"
 TYPE="container"
-CONFIG="keep"
 
 while echo -n "$1" | grep '^-' >/dev/null; do
 	arg $1
@@ -27,11 +25,12 @@ done
 NAME=$1
 test "$NAME" != "" || usage
 
-CONTAINER=$JAILS/"$TYPE"s/$NAME
+CONTAINER=/usr/local/jails/"$TYPE"s/$NAME
 if test -e $CONTAINER; then
 	service jail onestop $NAME >/dev/null 2>&1
 	jail -r $NAME >/dev/null 2>&1
-	umount $CONTAINER/dev >/dev/null 2>&1
+	jail-umount-all $NAME
+
 	chflags -R 0 $CONTAINER/
 	rm -rf $CONTAINER/
 fi

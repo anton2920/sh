@@ -89,5 +89,5 @@ if test "$RULE" = "create"; then
 
 [devfsrules_unhide_jail=666]
 add unhide
-	EOF
+EOF
 fi
