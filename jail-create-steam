@@ -64,15 +64,8 @@ $NAME {
 }
 EOF
 
-RULES=/etc/devfs.rules
-grep "devfsrules_unhide_jail=666" $RULES >/dev/null 2>&1 || cat >>$RULES <<EOF
-
-[devfsrules_unhide_jail=666]
-add unhide
-EOF
-
 JAIL=/usr/local/jails/containers/$NAME
-jail-create -l32 $UPDATE $NAME
+jail-create -666 -l32 $UPDATE $NAME
 mkdir -p $JAIL/home/root $JAIL/tmp >/dev/null 2>&1
 touch $JAIL/etc/fstab
 

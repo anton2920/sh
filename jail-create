@@ -6,6 +6,7 @@ arg()
 {
 	test "$1" = "--32" && ARCH="i386"
 	test "$1" = "--64" && ARCH="amd64"
+	test "$1" = "-666" && RULE="create"
 	test "$1" = "-l32" && LIB32="install"
 	test "$1" = "-t"   && TYPE="template"
 	test "$1" = "-u"   && UPDATE="on"
@@ -14,7 +15,7 @@ arg()
 
 usage()
 {
-	echo "usage: $PROJECT [--32|--64] [-l32] [-tu] name" >&2
+	echo "usage: $PROJECT [--32|--64] [-666] [-l32] [-tu] name" >&2
 	exit 1
 }
 
@@ -81,3 +82,12 @@ $NAME {
 	mount.devfs;	
 }
 EOF
+
+if test "$RULE" = "create"; then
+	RULES=/etc/devfs.rules
+	grep "devfsrules_unhide_jail=666" $RULES >/dev/null 2>&1 || cat >>$RULES <<EOF
+
+[devfsrules_unhide_jail=666]
+add unhide
+	EOF
+fi
