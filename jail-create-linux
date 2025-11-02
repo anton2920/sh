@@ -1,0 +1,99 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+arg()
+{
+	tets "$1" = "-i" && INTERACTIVE=on
+	test "$1" = "-u" && UPDATE="-u"
+	return 0
+}
+
+usage()
+{
+	echo "usage: $PROJECT [-iu] [name] base" >&2
+	exit 1
+}
+
+while echo -n "$1" | grep '^-' >/dev/null; do
+	arg $1
+	shift
+done
+
+NAME=$1
+test "$NAME" != "" || NAME=linux
+
+BASE=$2
+test "$BASE" != "" || usage
+
+CONFIG=/etc/jail.conf.d/$NAME.conf
+test -f "$CONFIG" || cat >$CONFIG <<EOF
+$NAME {
+	# STARTUP/LOGGING
+	exec.start = "/bin/sh /etc/rc";
+	exec.stop = "/bin/sh /etc/rc.shutdown";
+	exec.consolelog = "/var/log/jail_console_\${name}.log";
+	exec.clean;
+
+	# HOSTNAME/PATH
+	host.hostname = "\${name}";
+	path = "/usr/local/jails/containers/\${name}";
+
+	# NETWORK
+	ip4 = inherit;
+	interface = em0;
+
+	# PERMISSIONS
+	allow.mount;
+	allow.mount.devfs;
+	allow.mount.fdescfs;
+	allow.mount.linprocfs;
+	allow.mount.linsysfs;
+	allow.mount.nullfs;
+	allow.mount.tmpfs;
+	allow.raw_sockets;
+	enforce_statfs=1;
+
+	# ENVIRONMENTS
+	linux=new;
+
+	# MOUNTS
+	mount.devfs;
+}
+EOF
+
+JAIL=/usr/local/jails/containers/$NAME
+jail-create $NAME
+
+service linux onestart >/dev/null
+
+jail -cm \
+    name=$NAME \
+    host.hostname="$NAME" \
+    path="$JAIL" \
+    interface="em0" \
+    ip4=inherit \
+    exec.start="/bin/sh /etc/rc" \
+    exec.stop="/bin/sh /etc/rc.shutdown" \
+    mount.devfs \
+    devfs_ruleset=4 \
+    allow.mount \
+    allow.mount.devfs \
+    allow.mount.fdescfs \
+    allow.mount.procfs \
+    allow.mount.linprocfs \
+    allow.mount.linsysfs \
+    allow.mount.tmpfs \
+    enforce_statfs=1
+
+mkdir -p $JAIL/tmp $JAIL/compat/linux/tmp
+sysrc -j $NAME linux_enable="YES"
+
+if test "$INTERACTIVE" = "on"; then
+	jexec $NAME login -f root
+else
+	pkg -j $NAME install -y debootstrap
+	jexec $NAME debootstrap $BASE /compat/linux
+fi
+
+service jail onestop $NAME >/dev/null

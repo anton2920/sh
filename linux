@@ -4,16 +4,22 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT name" >&2
+	echo "usage: $PROJECT [name]" >&2
 	exit 1
 }
 
 NAME=$1
+test "$NAME" != "" || NAME="linux"
+JAIL=/usr/local/jails/containers/$NAME
 
-test "$NAME" != "" || usage
+xhost +local:$NAME >/dev/null
 
-service linux onestart >/dev/null 2>&1
-
+service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
-jexec $NAME chroot /compat/$NAME /bin/bash
+mount -t nullfs -o nocover /tmp $JAIL/compat/linux/tmp
+
+jexec $NAME service linux start
+jexec $NAME chroot /compat/linux login -f root
+
 service jail onestop $NAME >/dev/null 2>&1
+jail-umount-all $NAME
