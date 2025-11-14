@@ -30,12 +30,10 @@ service jail onestart $NAME >/dev/null 2>&1
 
 jexec $NAME service linux start
 
-
+mount -t nullfs -o nocover /tmp $JAIL/compat/linux/tmp
 if test "$NOCHROOT" = "1" -o ! -e $JAIL/compat/linux/bin/login; then
-	mount -t nullfs -o nocover /tmp $JAIL/tmp
-	jexec $NAME login -f root
+	jail-attach -X $NAME
 else
-	mount -t nullfs -o nocover /tmp $JAIL/compat/linux/tmp
 	jexec $NAME chroot /compat/linux login -f root
 fi
 
