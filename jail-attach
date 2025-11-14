@@ -1,0 +1,36 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+arg()
+{
+	test "$1" = "-X" && X11=mount
+	test "$1" = "-l" && CLEAN="-l"
+}
+
+usage()
+{
+	echo "usage: $PROJECT [-X] [-l] name" >&2
+	exit 1
+}
+
+while echo -n "$1" | grep '^-' >/dev/null; do
+	arg $1
+	shift
+done
+
+NAME=$1
+test "$NAME" != "" || usage
+
+if test "$X11" = "mount"; then
+	JAIL=/usr/local/jails/containers/$NAME
+	X11=/.X11-unix
+
+	xhost +local:$NAME
+	mkdir -p $JAIL/tmp/$X11
+	mount -t nullfs -o nocover /tmp/$X11 $JAIL/tmp/$X11
+fi
+
+jexec $CLEAN $NAME login -f root
+
+test "$X11" != "" && umount $JAIL/tmp/$X11
