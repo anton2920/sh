@@ -4,7 +4,7 @@ PROJECT=`basename $0`
 
 arg()
 {
-	tets "$1" = "-i" && INTERACTIVE=on
+	test "$1" = "-i" && INTERACTIVE=on
 	test "$1" = "-u" && UPDATE="-u"
 	return 0
 }
@@ -68,7 +68,7 @@ jail-create $NAME
 mkdir -p $JAIL/tmp $JAIL/compat/linux/tmp
 echo 'linux_enable="YES"' >$JAIL/etc/rc.conf
 
-if test "$BASE" != "none"; then
+if test "$BASE" != "none" -o "$INTERACTIVE" = "on"; then
 	service linux onestart >/dev/null
 
 	jail -cm \
