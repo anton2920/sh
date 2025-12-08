@@ -93,8 +93,37 @@ if test "$BASE" != "none" -o "$INTERACTIVE" = "on"; then
 	if test "$INTERACTIVE" = "on"; then
 		jexec $NAME login -f root
 	else
-		pkg -j $NAME install -y debootstrap
-		jexec $NAME debootstrap $BASE /compat/linux
+		case $BASE in
+		noble)
+			LINUX=$JAIL/compat/linux
+			BASE=$JAIL/root/base.tar.gz
+			fetch https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-amd64.tar.gz -o $BASE
+			tar -xvzf $BASE -C $LINUX
+
+			echo nameserver 8.8.8.8 >$LINUX/etc/resolv.conf
+			printf "APT::Cache-Start 251658240;" >$LINUX/etc/apt/apt.conf.d/00aptitude
+
+			FIX=$LINUX/root/bin/sh/apt-get-fix
+			mkdir -p `dirname $FIX`
+			cat >$FIX <<EOF
+mv /var/lib/dpkg/info /var/lib/dpkg/info_silent
+mkdir /var/lib/dpkg/info
+apt-get update
+apt-get -f install
+mv /var/lib/dpkg/info/* /var/lib/dpkg/info_silent
+rm -rf /var/lib/dpkg/info
+mv /var/lib/dpkg/info_silent /var/lib/dpkg/info
+apt-get update
+apt-get upgrade
+EOF
+			chmod +x $FIX
+			echo 'export PATH=$HOME/bin/sh:$PATH' >>$LINUX/root/.profile
+			;;
+		*)
+			pkg -j $NAME install -y debootstrap
+			jexec $NAME debootstrap $BASE /compat/linux
+			;;
+		esac
 	fi
 
 	service jail onestop $NAME >/dev/null
