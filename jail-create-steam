@@ -2,21 +2,17 @@
 
 PROJECT=`basename $0`
 
-arg()
-{
-	test "$1" = "-proton"	&& PROTON="install"
-	test "$1" = "-u"	&& UPDATE="-u"
-	return 0
-}
-
 usage()
 {
-	echo "usage: $PROJECT [-u] [name]" >&2
+	echo "usage: $PROJECT [-proton] [-u] [name]" >&2
 	exit 1
 }
 
-while echo -n "$1" | grep '^-' >/dev/null; do
-	arg $1
+while args $@; do
+	case $1 in
+	-proton) PROTON=install ;;
+	     -u) UPDATE=-u      ;;
+	esac
 	shift
 done
 

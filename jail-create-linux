@@ -2,21 +2,17 @@
 
 PROJECT=`basename $0`
 
-arg()
-{
-	test "$1" = "-i" && INTERACTIVE=on
-	test "$1" = "-u" && UPDATE="-u"
-	return 0
-}
-
 usage()
 {
-	echo "usage: $PROJECT [-iu] [name] [base]" >&2
+	echo "usage: $PROJECT [-iu] [name | name base]" >&2
 	exit 1
 }
 
-while echo -n "$1" | grep '^-' >/dev/null; do
-	arg $1
+while args $@; do
+	case $1 in
+	-i) INTERACTIVE=on ;;
+	-u) UPDATE=-u      ;;
+	esac
 	shift
 done
 

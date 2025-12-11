@@ -1,0 +1,59 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+
+usage()
+{
+	echo "usage: $PROJECT [-u] [name]" >&2
+	exit 1
+}
+
+while args $@; do
+	case $1 in
+	-u) UPDATE=-u ;;
+	esac
+	shift
+done
+
+NAME=$1
+test "$NAME" != "" || NAME=postgres
+
+CONFIG=/etc/jail.conf.d/$NAME.conf
+test -f $CONFIG || cat >$CONFIG <<EOF
+$NAME {
+	# STARTUP/LOGGING
+	exec.start = "/bin/sh /etc/rc";
+	exec.stop = "/bin/sh /etc/rc.shutdown";
+	exec.consolelog = "/var/log/jail_console_\${name}.log";
+	exec.clean;
+
+	# HOSTNAME/PATH
+	host.hostname = "\${name}";
+	path = "/usr/local/jails/containers/\${name}";
+
+	# NETWORK
+	ip4 = inherit;
+	interface = em0;
+
+	# PERMISSIONS
+	allow.raw_sockets;
+
+	# ENVIRONMENTS
+	sysvmsg=new;
+	sysvsem=new;
+	sysvshm=new;
+
+	# MOUNTS
+	mount.devfs;	
+}
+EOF
+
+jail-create $UPDATE $NAME
+service jail onestart $NAME >/dev/null
+
+pkg -j $NAME install -y postgresql17-server
+sysrc -j $NAME postgresql_enable="YES"
+service -j $NAME postgresql initdb
+
+service jail onestop $NAME >/dev/null

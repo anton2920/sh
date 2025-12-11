@@ -2,23 +2,19 @@
 
 PROJECT=`basename $0`
 
-arg()
-{
-	test "$1" = "-c" && CONFIG="remove"
-	test "$1" = "-t" && TYPE="template"
-	return 0
-}
-
 usage()
 {
 	echo "usage: $PROJECT [-t] name" >&2
 	exit 1
 }
 
-TYPE="container"
+TYPE=container
 
-while echo -n "$1" | grep '^-' >/dev/null; do
-	arg $1
+while args $@; do
+	case $1 in
+	-c) CONFIG=remove ;;
+	-t) TYPE=template ;;
+	esac
 	shift
 done
 
