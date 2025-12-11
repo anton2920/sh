@@ -4,21 +4,22 @@ set -e
 
 NAME=Debian
 MAP=`dirname $0`/$NAME.map
+VARS=`dirname $0`/$NAME.fd
 
 TAP=tap0
 DRIVE=/dev/zvol/storage/VMs/bhyve/$NAME
-ISO=/usr/home/anton/Downloads/debian-12.8.0-amd64-netinst.iso
+ISO=/home/anton/Downloads/debian-13.2.0-amd64-netinst.iso
 
 CPU=`nproc`
-RAM=2048
+RAM=8192
 
-bhyve-init >/dev/null 2>&1
+vm-init
 
-grub-bhyve \
-	-m $MAP \
-	-M $RAM \
-	-r hd0,msdos1 \
-	$NAME
+#grub-bhyve \
+#	-m $MAP \
+#	-M $RAM \
+#	-r hd0 \
+#	$NAME
 
 bhyve \
 	-A -D -H -P -u -w \
@@ -28,8 +29,10 @@ bhyve \
 	-s 1,lpc \
 	-s 2,virtio-net,$TAP \
 	-s 3,virtio-blk,$DRIVE \
-	-s 4,hda,play=/dev/dsp,rec=/dev/dsp \
+	-s 4,ahci-cd,$ISO \
+	-s 5,hda,play=/dev/dsp,rec=/dev/dsp \
 	-l com1,stdio \
+	-l bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd,$VARS \
 	$NAME
 
-bhyvectl --destroy --vm=$NAME
+vm-destroy $NAME

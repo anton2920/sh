@@ -1,0 +1,14 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+usage()
+{
+	echo "usage: $PROJECT name" >&2
+	exit 1
+}
+
+NAME=$1
+test "$NAME" != "" || usage
+
+bhyvectl --destroy --vm=$NAME

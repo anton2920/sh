@@ -7,12 +7,12 @@ MAP=`dirname $0`/$NAME.map
 
 TAP=tap0
 DRIVE=/dev/zvol/storage/VMs/bhyve/$NAME
-ISO=/usr/home/anton/Downloads/install76.img
+ISO=/home/anton/Downloads/install78.img
 
 CPU=`nproc`
 RAM=2048
 
-bhyve-init >/dev/null 2>&1
+vm-init
 
 cat <<EOF | grub-bhyve \
 	-m $MAP \
@@ -31,7 +31,8 @@ bhyve \
 	-s 1,lpc \
 	-s 2,virtio-net,$TAP \
 	-s 3,virtio-blk,$DRIVE \
+	-s 4,virtio-blk,$ISO \
 	-l com1,stdio \
 	$NAME
 
-bhyvectl --destroy --vm=$NAME
+vm-destroy $NAME
