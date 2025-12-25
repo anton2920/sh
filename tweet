@@ -1,3 +1,3 @@
 #!/bin/sh
 
-ssh -t pluser@workster.ru 'cd /usr/local/PL/rant/tweets && ./tweet'
+ssh -t pluser@32astroschool.ru 'cd /usr/local/PL/rant/tweets && ./tweet'

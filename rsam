@@ -1,4 +1,0 @@
-#!/bin/sh
-
-sam -r pluser@dev0.anton2920.ru -s /usr/local/plan9/bin/sam $@
-
