@@ -13,7 +13,7 @@ JAILS=/usr/local/jails
 TYPE="container"
 ARCH=`uname -p`
 
-while args $@; do
+while `dirname $0`/args $@; do
 	case $1 in
 	--32) ARCH=i386     ;;
 	--64) ARCH=amd64    ;;

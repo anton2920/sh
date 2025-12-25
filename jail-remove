@@ -10,7 +10,7 @@ usage()
 
 TYPE=container
 
-while args $@; do
+while `dirname $0`/args $@; do
 	case $1 in
 	-c) CONFIG=remove ;;
 	-t) TYPE=template ;;

@@ -9,7 +9,7 @@ usage()
 	exit 1
 }
 
-while args $@; do
+while `dirname $0`/args $@; do
 	case $1 in
 	-u) UPDATE=-u ;;
 	esac

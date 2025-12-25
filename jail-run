@@ -8,7 +8,7 @@ usage()
 	exit 1
 }
 
-while args $@; do
+while `dirname $0`/args $@; do
 	case $1 in
 	-X) X11=-X   ;;
 	-l) CLEAN=-l ;;
