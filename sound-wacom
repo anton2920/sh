@@ -2,7 +2,7 @@
 
 case `hostname` in
 	anton-ASUS)
-		mixer vol 80
+		mixer vol 40
 		mixer rec 90
 		mixer mic 100
 		
