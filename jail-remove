@@ -12,6 +12,7 @@ TYPE=container
 
 while `dirname $0`/args $@; do
 	case $1 in
+	--) shift; break  ;;
 	-c) CONFIG=remove ;;
 	-t) TYPE=template ;;
 	esac
