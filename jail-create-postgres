@@ -34,10 +34,6 @@ $NAME {
 
 	# NETWORK
 	ip4 = inherit;
-	interface = em0;
-
-	# PERMISSIONS
-	allow.raw_sockets;
 
 	# ENVIRONMENTS
 	sysvmsg=new;
@@ -45,7 +41,7 @@ $NAME {
 	sysvshm=new;
 
 	# MOUNTS
-	mount.devfs;	
+	mount.devfs;
 }
 EOF
 

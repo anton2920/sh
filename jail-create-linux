@@ -8,8 +8,11 @@ usage()
 	exit 1
 }
 
+ARCH=amd64
+
 while `dirname $0`/args $@; do
 	case $1 in
+	--32) ARCH=i386    ;;
 	-i) INTERACTIVE=on ;;
 	-u) UPDATE=-u      ;;
 	esac
@@ -59,7 +62,7 @@ $NAME {
 EOF
 
 JAIL=/usr/local/jails/containers/$NAME
-jail-create $NAME
+jail-create $UPDATE $NAME
 
 mkdir -p $JAIL/tmp $JAIL/compat/linux/tmp
 echo 'linux_enable="YES"' >$JAIL/etc/rc.conf
@@ -91,9 +94,13 @@ if test "$BASE" != "none" -o "$INTERACTIVE" = "on"; then
 	else
 		case $BASE in
 		noble)
+			if test "$ARCH" = "i386"; then
+				echo "Ubuntu 24.04 Noble is not available for i386" >&2
+				exit 1
+			fi
 			LINUX=$JAIL/compat/linux
 			BASE=$JAIL/root/base.tar.gz
-			fetch https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-amd64.tar.gz -o $BASE
+			fetch https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-$ARCH.tar.gz -o $BASE
 			tar -xvzf $BASE -C $LINUX
 
 			echo nameserver 8.8.8.8 >$LINUX/etc/resolv.conf
@@ -117,7 +124,7 @@ EOF
 			;;
 		*)
 			pkg -j $NAME install -y debootstrap
-			jexec $NAME debootstrap $BASE /compat/linux
+			jexec $NAME debootstrap --arch=$ARCH $BASE /compat/linux
 			;;
 		esac
 	fi

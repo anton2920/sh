@@ -1,0 +1,25 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+usage()
+{
+	echo "usage: $PROJECT from to" >&2
+	exit 1
+}
+
+FROM=$1
+test "$FROM" != "" || usage
+shift
+
+TO=$1
+test "$TO" != "" || usage
+
+JAIL_HOME=/usr/local/jails/containers
+CONF_HOME=/etc/jail.conf.d
+
+test -d "$JAIL_HOME/$FROM" || { printf "Container '%s' does not exist\n" $FROM >&2; exit 1; }
+test -d "$JAIL_HOME/$TO"   && { echo "Destination directory is not empty" >&2; exit 1; }
+
+mv $JAIL_HOME/$FROM $JAIL_HOME/$TO
+sed "1s/$FROM/$TO/" $CONF_HOME/$FROM.conf >$CONF_HOME/$TO.conf && rm $CONF_HOME/$FROM.conf

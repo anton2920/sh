@@ -4,7 +4,7 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [--32|--64] [-666] [-l32] [-tu] name" >&2
+	echo "usage: $PROJECT [--32|--64] [-666] [-l32] [-Tu] [-t template[@snapshot]] name" >&2
 	exit 1
 }
 
@@ -15,12 +15,13 @@ ARCH=`uname -p`
 
 while `dirname $0`/args $@; do
 	case $1 in
-	--32) ARCH=i386     ;;
-	--64) ARCH=amd64    ;;
-	-666) RULE=create   ;;
-	-l32) LIB32=install ;;
-	  -t) TYPE=template ;;
-	  -u) UPDATE=on     ;;
+	  -T) TYPE=template      ;;
+	  -t) TEMPLATE=$2; shift ;;
+	  -u) UPDATE=on          ;;
+	--32) ARCH=i386          ;;
+	--64) ARCH=amd64         ;;
+	-666) RULE=create        ;;
+	-l32) LIB32=install      ;;
 	esac
 	shift
 done
@@ -28,30 +29,39 @@ done
 NAME=$1
 test "$NAME" != "" || usage
 
-BASE=$JAILS/media/$ARCH/$VERSION-base.txz
-if test ! -e $BASE; then
-	mkdir -p $JAILS/media/$ARCH
-	fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/base.txz -o $BASE
-fi
-if test "$LIB32" = "install" -a "$ARCH" = "amd64"; then
-	LIB32=$JAILS/media/$ARCH/$VERSION-lib32.txz
-	if test ! -e $LIB32; then
+if test "$TEMPLATE" == ""; then
+	# Traditional thick jail.
+
+	BASE=$JAILS/media/$ARCH/$VERSION-base.txz
+	if test ! -e $BASE; then
 		mkdir -p $JAILS/media/$ARCH
-		fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/lib32.txz -o $LIB32
+		fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/base.txz -o $BASE
 	fi
-fi
+	if test "$LIB32" = "install" -a "$ARCH" = "amd64"; then
+		LIB32=$JAILS/media/$ARCH/$VERSION-lib32.txz
+		if test ! -e $LIB32; then
+			mkdir -p $JAILS/media/$ARCH
+			fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/lib32.txz -o $LIB32
+		fi
+	fi
+	
+	CONTAINER=$JAILS/"$TYPE"s/$NAME
+	if test ! -e $CONTAINER; then
+		mkdir -p $CONTAINER
+		tar -xf $BASE -C $CONTAINER
+		test "$LIB32" != "" && tar -xf $LIB32 -C $CONTAINER
+		cp /etc/resolv.conf $CONTAINER/etc/resolv.conf
+		cp /etc/localtime $CONTAINER/etc/localtime
+		cp /etc/machine-id $CONTAINER/etc/machine-id
+	fi
+	
+	test "$UPDATE" = "on" -a "$ARCH" = "amd64" && freebsd-update -b $CONTAINER fetch install
+else
+	# ZFS-clone thin jail.
 
-CONTAINER=$JAILS/"$TYPE"s/$NAME
-if test ! -e $CONTAINER; then
-	mkdir -p $CONTAINER
-	tar -xf $BASE -C $CONTAINER
-	test "$LIB32" != "" && tar -xf $LIB32 -C $CONTAINER
-	cp /etc/resolv.conf $CONTAINER/etc/resolv.conf
-	cp /etc/localtime $CONTAINER/etc/localtime
-	cp /etc/machine-id $CONTAINER/etc/machine-id
+	echo "TODO(anton2920): thin jails." >&2
+	exit 1
 fi
-
-test "$UPDATE" = "on" -a "$ARCH" = "amd64" && freebsd-update -b $CONTAINER fetch install
 
 CONFIG=/etc/jail.conf.d/$NAME.conf
 TYPES="$TYPE"s
