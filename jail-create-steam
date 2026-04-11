@@ -73,11 +73,11 @@ mv $PROFILE-patched $PROFILE
 service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
 
-pkg -j $NAME install -y linux-steam-utils linux-nvidia-libs
+pkg -j $NAME install -y linux-steam-utils linux-nvidia-libs-580
 sysrc -j $NAME linux_enable="YES"
 
 if test "$PROTON" = "install"; then
-	pkg -j $NAME install -y wine-proton libc6-shim python3 nvidia-driver
+	pkg -j $NAME install -y wine-proton libc6-shim python3 nvidia-driver-580
 	PKG=/usr/local/wine-proton/bin/pkg32.sh
 	jexec $NAME /bin/sh -c "sed '/echo/d;/exit/d' $PKG >$PKG-patched && chmod +x $PKG-patched && $PKG-patched install -y wine-proton mesa-dri gstreamer1-plugins-mpg123"
 

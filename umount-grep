@@ -11,6 +11,6 @@ usage()
 REGEX=$1
 test "$REGEX" != "" || usage
 
-for m in `mount | cut -d ' ' -f 3 | grep $REGEX | sort -r`; do
+for m in `mount | grep -v zroot | cut -d ' ' -f 3 | grep $REGEX | sort -r`; do
 	umount $m
 done

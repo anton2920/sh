@@ -46,7 +46,7 @@ if test "$TEMPLATE" == ""; then
 	fi
 	
 	CONTAINER=$JAILS/"$TYPE"s/$NAME
-	if test ! -e $CONTAINER; then
+	if test ! -e "$CONTAINER/etc/machine-id"; then
 		mkdir -p $CONTAINER
 		tar -xf $BASE -C $CONTAINER
 		test "$LIB32" != "" && tar -xf $LIB32 -C $CONTAINER
