@@ -1,19 +1,15 @@
 #!/bin/sh
 
-PROP="libinput Scroll Method Enabled"
-MOUSE='Logitech Optical USB Mouse'
-TRACK='Generic PS/2 mouse'
+toggle()
+{	
+	DEV="$1"
 
-xinput --list-props $MOUSE | grep '.*libinput Scroll Method Enabled (.*1$'
-if [ $? -eq 0 ] ; then
-	xinput --set-prop "$MOUSE" "$PROP" 0, 0, 0
-else
-	xinput --set-prop "$MOUSE" "$PROP" 0, 0, 1
-fi
+	xinput --list-props "$DEV" | grep '.*libinput Scroll Method Enabled (.*1$' && VALUE="0, 0, 0" || VALUE="0, 0, 1"
+	xinput --set-prop "$DEV" 'libinput Scroll Method Enabled' $VALUE
+}
 
-xinput --list-props "$TRACK" | grep '.*libinput Scroll Method Enabled (.*1$'
-if [ $? -eq 0 ] ; then
-	xinput --set-prop "$TRACK" "$PROP" 0, 0, 0
-else
-	xinput --set-prop "$TRACK" "$PROP" 0, 0, 1
-fi
+MOUSE="Logitech Optical USB Mouse"
+TRACK="Generic PS/2 mouse"
+
+toggle "$MOUSE"
+toggle "$TRACK"
