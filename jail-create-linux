@@ -93,15 +93,19 @@ if test "$BASE" != "none" -o "$INTERACTIVE" = "on"; then
 		jexec $NAME login -f root
 	else
 		case $BASE in
-		noble)
+		noble|resolute)
 			if test "$ARCH" = "i386"; then
-				echo "Ubuntu 24.04 Noble is not available for i386" >&2
+				echo "Ubuntu 24.04 and later are not available for i386" >&2
 				exit 1
 			fi
 			LINUX=$JAIL/compat/linux
-			BASE=$JAIL/root/base.tar.gz
-			fetch https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-$ARCH.tar.gz -o $BASE
-			tar -xvzf $BASE -C $LINUX
+			DIST=$JAIL/root/base.tar.gz
+			case $BASE in
+			noble)    fetch https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.3-base-$ARCH.tar.gz -o $DIST ;;
+			resolute) fetch https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-$ARCH.tar.gz   -o $DIST ;;
+			esac
+			tar -xvzf $DIST -C $LINUX
+			rm -f $DIST
 
 			echo nameserver 8.8.8.8 >$LINUX/etc/resolv.conf
 			printf "APT::Cache-Start 251658240;" >$LINUX/etc/apt/apt.conf.d/00aptitude
@@ -121,6 +125,10 @@ apt-get upgrade
 EOF
 			chmod +x $FIX
 			echo 'export PATH=$HOME/bin/sh:$PATH' >>$LINUX/root/.profile
+
+			case $BASE in
+			resolute) jexec $NAME chroot /compat/linux /bin/sh -c 'apt-get update && apt-get remove -y coreutils-from-uutils --allow-remove-essential && rm -f /*.core';;
+			esac
 			;;
 		*)
 			pkg -j $NAME install -y debootstrap
