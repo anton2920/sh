@@ -29,11 +29,11 @@ jexec $NAME service linux start
 
 mount -t nullfs -o nocover /tmp $JAIL/compat/linux/tmp
 if test "$NOCHROOT" = "1" -o ! -e $JAIL/compat/linux/bin/login; then
-	jail-attach -X $NAME
+	`dirname $0`/jail-attach -X $NAME
 else
 	test "$USESHELL" = "" && CMD="login -f root" || CMD="/bin/bash -l"
 	jexec $NAME chroot /compat/linux $CMD
 fi
 
 service jail onestop $NAME >/dev/null 2>&1
-jail-umount-all $NAME
+`dirname $0`/jail-umount-all $NAME

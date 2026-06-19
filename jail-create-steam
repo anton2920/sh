@@ -4,14 +4,16 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [-proton] [-u] [name]" >&2
+	echo "usage: $PROJECT [-proton] [-r release] [-du] [name]" >&2
 	exit 1
 }
 
 while `dirname $0`/args $@; do
 	case $1 in
-	-proton) PROTON=install ;;
-	     -u) UPDATE=-u      ;;
+	-proton) PROTON=install         ;;
+	     -d) DATASET=-d             ;;
+	     -r) RELEASE="-r $2"; shift ;;
+	     -u) UPDATE=-u              ;;
 	esac
 	shift
 done
@@ -61,7 +63,7 @@ $NAME {
 EOF
 
 JAIL=/usr/local/jails/containers/$NAME
-jail-create -666 -l32 $UPDATE $NAME
+jail-create -666 -l32 $DATASET $RELEASE $UPDATE $NAME
 mkdir -p $JAIL/home/root $JAIL/tmp >/dev/null 2>&1
 touch $JAIL/etc/fstab
 
@@ -73,7 +75,7 @@ mv $PROFILE-patched $PROFILE
 service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
 
-pkg -j $NAME install -y linux-steam-utils linux-nvidia-libs-580
+pkg -j $NAME install -y pkg linux-steam-utils linux-nvidia-libs-580
 sysrc -j $NAME linux_enable="YES"
 
 if test "$PROTON" = "install"; then

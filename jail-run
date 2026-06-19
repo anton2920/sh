@@ -19,6 +19,6 @@ done
 NAME=$1
 test "$NAME" != "" || usage
 
-service jail onestart $NAME >/dev/null
+service jail onestart $NAME
 jail-attach $X11 $CLEAN $NAME
 service jail onestop $NAME >/dev/null

@@ -4,11 +4,11 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [--32|--64] [-666] [-l32] [-Tu] [-t template[@snapshot]] name" >&2
+	echo "usage: $PROJECT [--32|--64] [-666] [-l32] [-Tdhu] [-r release] [-t template[@snapshot]] name" >&2
 	exit 1
 }
 
-VERSION=`freebsd-version | sed 's/-p.*//'`
+RELEASE=`freebsd-version | sed 's/-p.*//'`
 JAILS=/usr/local/jails
 TYPE="container"
 ARCH=`uname -p`
@@ -16,6 +16,9 @@ ARCH=`uname -p`
 while `dirname $0`/args $@; do
 	case $1 in
 	  -T) TYPE=template      ;;
+	  -d) DATASET=create     ;;
+	  -h) usage              ;;
+	  -r) RELEASE=$2;  shift ;;
 	  -t) TEMPLATE=$2; shift ;;
 	  -u) UPDATE=on          ;;
 	--32) ARCH=i386          ;;
@@ -32,22 +35,22 @@ test "$NAME" != "" || usage
 if test "$TEMPLATE" == ""; then
 	# Traditional thick jail.
 
-	BASE=$JAILS/media/$ARCH/$VERSION-base.txz
+	BASE=$JAILS/media/$ARCH/$RELEASE-base.txz
 	if test ! -e $BASE; then
 		mkdir -p $JAILS/media/$ARCH
-		fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/base.txz -o $BASE
+		fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$RELEASE/base.txz -o $BASE
 	fi
 	if test "$LIB32" = "install" -a "$ARCH" = "amd64"; then
-		LIB32=$JAILS/media/$ARCH/$VERSION-lib32.txz
+		LIB32=$JAILS/media/$ARCH/$RELEASE-lib32.txz
 		if test ! -e $LIB32; then
 			mkdir -p $JAILS/media/$ARCH
-			fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$VERSION/lib32.txz -o $LIB32
+			fetch https://download.freebsd.org/ftp/releases/$ARCH/$ARCH/$RELEASE/lib32.txz -o $LIB32
 		fi
 	fi
-	
+
 	CONTAINER=$JAILS/"$TYPE"s/$NAME
 	if test ! -e "$CONTAINER/etc/machine-id"; then
-		mkdir -p $CONTAINER
+		test "$DATASET" = "" && mkdir -p $CONTAINER || zfs create -p zroot"$CONTAINER"
 		tar -xf $BASE -C $CONTAINER
 		test "$LIB32" != "" && tar -xf $LIB32 -C $CONTAINER
 		cp /etc/resolv.conf $CONTAINER/etc/resolv.conf

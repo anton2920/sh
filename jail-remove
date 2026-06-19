@@ -4,7 +4,7 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [-t] name" >&2
+	echo "usage: $PROJECT [-Tc] name" >&2
 	exit 1
 }
 
@@ -14,7 +14,7 @@ while `dirname $0`/args $@; do
 	case $1 in
 	--) shift; break  ;;
 	-c) CONFIG=remove ;;
-	-t) TYPE=template ;;
+	-T) TYPE=template ;;
 	esac
 	shift
 done
@@ -28,8 +28,13 @@ if test -e $CONTAINER; then
 	jail -r $NAME >/dev/null 2>&1
 	jail-umount-all $NAME
 
-	chflags -R 0 $CONTAINER/
-	rm -rf $CONTAINER/
+	DATASET=`zfs list $CONTAINER | grep "$CONTAINER" | awk '{print $1;}'`
+	if test "$DATASET" != ""; then
+		zfs destroy -r $DATASET
+	else
+		chflags -R 0 $CONTAINER/
+		rm -rf $CONTAINER/
+	fi
 fi
 
 test "$CONFIG" = "remove" && rm -f /etc/jail.conf.d/$NAME.conf
