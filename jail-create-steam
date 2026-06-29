@@ -71,6 +71,7 @@ PROFILE=$JAIL/root/.profile
 grep 'DISPLAY' $PROFILE >/dev/null || echo 'DISPLAY=:0; export DISPLAY' >>$PROFILE
 sed 's/HOME=\/root/HOME=\/home\/root/' $PROFILE >$PROFILE-patched
 mv $PROFILE-patched $PROFILE
+echo 'export HOME=/home/root' >>$PROFILE
 
 service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
