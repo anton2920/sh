@@ -37,7 +37,13 @@ buildISPC()
 
 		for file in $FILES; do
 			BASE=`echo $file | cut -d '.' -f 1`
-			run ispc $@ --target=host -o $BASE.o -h $BASE.h --pic $file
+			FLAGS=--target=host
+
+			TAG='^\/\/ispc:flags: '
+			if sed 1q $file | grep $TAG >/dev/null; then
+				FLAGS=`sed '1q' $file | sed "s/$TAG//"`
+			fi
+			run ispc $FLAGS $@ -o $BASE.o -h $BASE.h --pic $file
 		done
 
 		printv cat *.h
