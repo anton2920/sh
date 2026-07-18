@@ -1,6 +1,6 @@
 #!/bin/sh
 
-IP=`ifconfig | grep inet | awk '{print $2;}' | sed 1q`
+IP=`ifconfig | grep inet | grep -v inet6 | awk '{print $2;}' | grep -v '127\.0\.0\.1'`
 
 SOCKS=6585
 ZHTTP=3128
