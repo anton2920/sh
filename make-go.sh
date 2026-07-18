@@ -64,9 +64,10 @@ GOSUMDB=off; export GOSUMDB
 GO111MODULE=off; export GO111MODULE
 GOPATH=`go env GOPATH`:`pwd`; export GOPATH
 
-CGO_ENABLED=0; export CGO_ENABLED
-
-test "$GO14" = "true" && . go14-env
+test "$CGO_ENABLED" = "" && { CGO_ENABLED=0; export CGO_ENABLED; }
+test "$GO14" = "true" && . go14-env || {
+	grep 'import "C"' *.go >/dev/null && RACE= || RACE=-race
+}
 
 STARTTIME=`now`
 
@@ -81,9 +82,8 @@ case $TARGET in
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0 -g
 		if test "$GO14" = "true"; then
-			run go build $VERBOSITYFLAGS -o $PROJECT -gcflags="-N -l" -tags gofadebug $@
+			run go build $VERBOSITYFLAGS -o $PROJECT $RACE -gcflags="-N -l" -tags gofadebug $@
 		else
-			grep 'import "C"' *.go >/dev/null && RACE= || RACE=-race
 			run go build $VERBOSITYFLAGS -o $PROJECT $RACE -pgo off -gcflags="all=-N -l" -tags gofadebug $@
 		fi
 		;;
@@ -234,8 +234,12 @@ case $TARGET in
 	test-race-cover)
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0 -g
-		run $0 $VERBOSITYFLAGS vet
-		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off -race -cover -gcflags="all=-N -l" -tags gofadebug
+		if test "$GO14" = "true"; then
+			run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off $RACE -gcflags="-N -l" -tags gofadebug
+		else
+			run $0 $VERBOSITYFLAGS vet
+			run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off $RACE -cover -gcflags="all=-N -l" -tags gofadebug
+		fi
 		;;
 	test-tracing)
 		run buildISPC -O3
