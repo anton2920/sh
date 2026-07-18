@@ -1,9 +1,17 @@
 #!/bin/sh
 
-IP=`ifconfig | grep inet | grep -v inet6 | awk '{print $2;}' | grep -v '127\.0\.0\.1'`
+#IIP="127.0.0.1"
+EIP=`ifconfig | grep inet | grep -v inet6 | awk '{print $2;}' | grep -v '127\.0\.0\.1'`
 
 SOCKS=6585
 ZHTTP=3128
 ZSOCK=1080
 
-ssh -D $IP:$SOCKS -L $IP:$ZHTTP:127.0.0.1:$ZHTTP -L $IP:$ZSOCK:127.0.0.1:$ZSOCK proxy.anton2920.ru -N -C
+ssh -N -C \
+	-D $IIP:$SOCKS \
+	-D $EIP:$SOCKS \
+	-L $IIP:$ZHTTP:127.0.0.1:$ZHTTP \
+	-L $EIP:$ZHTTP:127.0.0.1:$ZHTTP \
+	-L $IIP:$ZSOCK:127.0.0.1:$ZSOCK \
+	-L $EIP:$ZSOCK:127.0.0.1:$ZSOCK \
+	proxy.anton2920.ru
