@@ -66,7 +66,9 @@ GOPATH=`go env GOPATH`:`pwd`; export GOPATH
 
 test "$CGO_ENABLED" = "" && { CGO_ENABLED=0; export CGO_ENABLED; }
 test "$GO14" = "true" && . go14-env || {
-	grep 'import "C"' *.go >/dev/null && RACE= || RACE=-race
+	grep 'import "C"' *.go >/dev/null && RACE= || {
+		test "`go env GOARCH`" = "386" && RACE= || RACE=-race
+	}
 }
 
 STARTTIME=`now`
