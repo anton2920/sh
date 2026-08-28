@@ -4,7 +4,7 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [--32|--64] [-666] [-l32] [-Tdhu] [-r release] [-t template[@snapshot]] name" >&2
+	echo "usage: $PROJECT [-Tdhu] [--32|--64] [-666] [-l32] [-r release] [-t template[@snapshot]] name" >&2
 	exit 1
 }
 
@@ -15,16 +15,17 @@ ARCH=`uname -p`
 
 while `dirname $0`/args $@; do
 	case $1 in
-	  -T) TYPE=template      ;;
-	  -d) DATASET=create     ;;
-	  -h) usage              ;;
-	  -r) RELEASE=$2;  shift ;;
-	  -t) TEMPLATE=$2; shift ;;
-	  -u) UPDATE=on          ;;
 	--32) ARCH=i386          ;;
 	--64) ARCH=amd64         ;;
 	-666) RULE=create        ;;
+	  -T) TYPE=template      ;;
+	  -d) DATASET=create     ;;
+	  -h) usage              ;;
 	-l32) LIB32=install      ;;
+	  -r) RELEASE=$2;  shift ;;
+	  -t) TEMPLATE=$2; shift ;;
+	  -u) UPDATE=on          ;;
+	   *) usage              ;;
 	esac
 	shift
 done

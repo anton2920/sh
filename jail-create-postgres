@@ -12,6 +12,7 @@ usage()
 while `dirname $0`/args $@; do
 	case $1 in
 	-u) UPDATE=-u ;;
+	 *) usage     ;;
 	esac
 	shift
 done

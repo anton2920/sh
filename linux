@@ -4,7 +4,7 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [-n] [name]" >&2
+	echo "usage: $PROJECT [-ns] [name]" >&2
 	exit 1
 }
 
@@ -12,6 +12,7 @@ while `dirname $0`/args $@; do
 	case $1 in
 	-n) NOCHROOT=1 ;;
 	-s) USESHELL=1 ;;
+	 *) usage      ;;
 	esac
 	shift
 done

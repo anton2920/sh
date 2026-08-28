@@ -4,16 +4,18 @@ PROJECT=`basename $0`
 
 usage()
 {
-	echo "usage: $PROJECT [-proton] [-r release] [-du] [name]" >&2
+	echo "usage: $PROJECT [-du] [-latest] [-proton] [-r release] [name]" >&2
 	exit 1
 }
 
 while `dirname $0`/args $@; do
 	case $1 in
+	-latest) LATEST=true            ;;
 	-proton) PROTON=install         ;;
 	     -d) DATASET=-d             ;;
 	     -r) RELEASE="-r $2"; shift ;;
 	     -u) UPDATE=-u              ;;
+	      *) usage                  ;;
 	esac
 	shift
 done
@@ -73,16 +75,55 @@ sed 's/HOME=\/root/HOME=\/home\/root/' $PROFILE >$PROFILE-patched
 mv $PROFILE-patched $PROFILE
 echo 'export HOME=/home/root' >>$PROFILE
 
+LAUNCH=$JAIL/root/bin/steam-launch
+mkdir -p `dirname $LAUNCH`
+cat >$LAUNCH <<EOF
+#!/bin/sh
+pulseaudio -D
+PROTON_USE_WOW64=1 steam
+EOF
+chmod +x $LAUNCH
+
 service linux onestart >/dev/null
 service jail onestart $NAME >/dev/null 2>&1
 
-pkg -j $NAME install -y pkg linux-steam-utils linux-nvidia-libs-580
+pkg -j $NAME install -y pkg
+if test "$LATEST" = "true"; then
+	REPO=$JAIL/usr/local/etc/pkg/repos/FreeBSD.conf
+	mkdir -p `dirname $REPO`
+	cat >$REPO <<EOF
+FreeBSD-ports: { enabled: no }
+FreeBSD-ports-kmods: { enabled: no }
+
+FreeBSD-ports-latest: {
+  url: "pkg+https://pkg.FreeBSD.org/\${ABI}/latest",
+  mirror_type: "srv",
+  signature_type: "fingerprints",
+  fingerprints: "/usr/share/keys/pkg",
+  enabled: yes
+}
+FreeBSD-ports-kmods-latest: {
+  url: "pkg+https://pkg.FreeBSD.org/\${ABI}/kmods_latest_\${VERSION_MINOR}",
+  mirror_type: "srv",
+  signature_type: "fingerprints",
+  fingerprints: "/usr/share/keys/pkg",
+  enabled: yes
+}
+EOF
+fi
+
+jexec $NAME pkg update -f
+jexec $NAME pkg upgrade -fy
+jexec $NAME pkg install -y linux-steam-utils linux-nvidia-libs-580
 sysrc -j $NAME linux_enable="YES"
 
 if test "$PROTON" = "install"; then
-	pkg -j $NAME install -y wine-proton libc6-shim python3 nvidia-driver-580 gstreamer1-plugins-mpg123
+	jexec $NAME pkg install -y wine-proton libc6-shim nvidia-driver-580 gstreamer1-plugins-mpg123 pulseaudio
 	PKG=/usr/local/wine-proton/bin/pkg32.sh
 	jexec $NAME /bin/sh -c "sed '/echo/d;/exit/d' $PKG >$PKG-patched && chmod +x $PKG-patched && $PKG-patched install -y wine-proton mesa-dri gstreamer1-plugins-mpg123"
+
+	PADAEMON=/usr/local/etc/pulse/daemon.conf
+	jexec $NAME /bin/sh -c "sed '/exit-idle-time/a/exit-idle-time = -1/' $PADAEMON >$PADAEMON-patched && chmod +x $PADAEMON-patched && mv $PADAEMON-patched $PADAEMON"
 
 	WINEENV=/usr/local/steam-utils/bin/lsu-wine-env
 	jexec $NAME /bin/sh -c "sed '/script as root/d' $WINEENV >$WINEENV-patched && chmod +x $WINEENV-patched && mv $WINEENV-patched $WINEENV"
@@ -92,5 +133,6 @@ BOOTSTRAP=/usr/local/steam-utils/bin/lsu-bootstrap
 jexec $NAME /bin/sh -c "sed '/script as root/d' $BOOTSTRAP >$BOOTSTRAP-patched && chmod +x $BOOTSTRAP-patched && $BOOTSTRAP-patched --allow-stealing-my-passwords,-browser-history-and-ssh-keys"
 
 jexec $NAME /bin/sh -c "mkdir -p /var/lib/dbus && /usr/local/bin/dbus-uuidgen --ensure"
+jexec $NAME /bin/sh -c "ln -fs /usr/local/bin/python3.12 /usr/local/bin/python3"
 
 service jail onestop $NAME >/dev/null
