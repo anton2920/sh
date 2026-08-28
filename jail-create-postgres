@@ -50,6 +50,8 @@ jail-create $UPDATE $NAME
 service jail onestart $NAME >/dev/null
 
 pkg -j $NAME install -y postgresql17-server
+pkg -j $NAME clean -ya
+
 sysrc -j $NAME postgresql_enable="YES"
 service -j $NAME postgresql initdb
 

@@ -113,17 +113,16 @@ EOF
 fi
 
 jexec $NAME pkg update -f
-jexec $NAME pkg upgrade -fy
 jexec $NAME pkg install -y linux-steam-utils linux-nvidia-libs-580
 sysrc -j $NAME linux_enable="YES"
 
 if test "$PROTON" = "install"; then
-	jexec $NAME pkg install -y wine-proton libc6-shim nvidia-driver-580 gstreamer1-plugins-mpg123 pulseaudio
+	jexec $NAME pkg install -y wine-proton libc6-shim nvidia-driver-580 gstreamer1-plugins-mpg123 pulseaudio libinotify
 	PKG=/usr/local/wine-proton/bin/pkg32.sh
-	jexec $NAME /bin/sh -c "sed '/echo/d;/exit/d' $PKG >$PKG-patched && chmod +x $PKG-patched && $PKG-patched install -y wine-proton mesa-dri gstreamer1-plugins-mpg123"
+	jexec $NAME /bin/sh -c "sed '/echo/d;/exit/d' $PKG >$PKG-patched && chmod +x $PKG-patched && $PKG-patched install -y wine-proton mesa-dri gstreamer1-plugins-mpg123 && $PKG-patched clean -ya"
 
 	PADAEMON=/usr/local/etc/pulse/daemon.conf
-	jexec $NAME /bin/sh -c "sed '/exit-idle-time/a/exit-idle-time = -1/' $PADAEMON >$PADAEMON-patched && chmod +x $PADAEMON-patched && mv $PADAEMON-patched $PADAEMON"
+	jexec $NAME /bin/sh -c "sed '/exit-idle-time/s/; //; s/20/-1/' $PADAEMON >$PADAEMON-patched && chmod +x $PADAEMON-patched && mv $PADAEMON-patched $PADAEMON"
 
 	WINEENV=/usr/local/steam-utils/bin/lsu-wine-env
 	jexec $NAME /bin/sh -c "sed '/script as root/d' $WINEENV >$WINEENV-patched && chmod +x $WINEENV-patched && mv $WINEENV-patched $WINEENV"
@@ -134,5 +133,6 @@ jexec $NAME /bin/sh -c "sed '/script as root/d' $BOOTSTRAP >$BOOTSTRAP-patched &
 
 jexec $NAME /bin/sh -c "mkdir -p /var/lib/dbus && /usr/local/bin/dbus-uuidgen --ensure"
 jexec $NAME /bin/sh -c "ln -fs /usr/local/bin/python3.12 /usr/local/bin/python3"
+jexec $NAME pkg clean -ya
 
 service jail onestop $NAME >/dev/null
