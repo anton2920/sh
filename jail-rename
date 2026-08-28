@@ -21,5 +21,10 @@ CONF_HOME=/etc/jail.conf.d
 test -d "$JAIL_HOME/$FROM" || { printf "Container '%s' does not exist\n" $FROM >&2; exit 1; }
 test -d "$JAIL_HOME/$TO"   && { echo "Destination directory is not empty" >&2; exit 1; }
 
-mv $JAIL_HOME/$FROM $JAIL_HOME/$TO
-sed "1s/$FROM/$TO/" $CONF_HOME/$FROM.conf >$CONF_HOME/$TO.conf && rm $CONF_HOME/$FROM.conf
+DATASET=`zfs list $JAIL_HOME/$FROM | grep "$JAIL_HOME/$FROM" | awk '{print $1;}'`
+if test "$DATASET" != ""; then
+	zfs rename zroot$JAIL_HOME/$FROM zroot$JAIL_HOME/$TO
+else
+	mv $JAIL_HOME/$FROM $JAIL_HOME/$TO
+fi
+test -f $CONF_HOME/$FROM.conf && sed "1s/$FROM/$TO/" $CONF_HOME/$FROM.conf >$CONF_HOME/$TO.conf && rm $CONF_HOME/$FROM.conf
