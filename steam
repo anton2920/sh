@@ -1,5 +1,7 @@
 #!/bin/sh
 
+PROJECT=`basename $0`
+
 usage()
 {
 	echo "usage: $PROJECT [-i] [name]" >&2
@@ -37,7 +39,7 @@ service -j $NAME linux start
 if test "$INTERACTIVE" = "yes"; then
 	jexec $NAME login -f root
 else
-	jexec $NAME /bin/sh -c "export HOME=/home/root; export DISPLAY=:0; $HOME/bin/steam-launch"
+	jexec $NAME /bin/sh -c "export HOME=/home/root; export DISPLAY=:0; /home/root/bin/steam-launch"
 fi
 
 service jail onestop $NAME >/dev/null 2>&1
