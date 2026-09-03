@@ -20,7 +20,6 @@ while `dirname $0`/args $@; do
 	-666) RULE=create        ;;
 	  -T) TYPE=template      ;;
 	  -d) DATASET=create     ;;
-	  -h) usage              ;;
 	-l32) LIB32=install      ;;
 	  -r) RELEASE=$2;  shift ;;
 	  -t) TEMPLATE=$2; shift ;;
