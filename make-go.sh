@@ -56,20 +56,51 @@ buildISPC()
 	fi
 }
 
+GOPATH=$HOME/go
+case $GO in
+1|103|1.0|1.0.3)  GODIST=go1  ;;
+14|143|1.4|1.4.3) GODIST=go14 ;;
+*)                GODIST=go   ;;
+esac
+
+GOROOT=$GOPATH/dist/$GODIST
+PATH=$GOROOT/bin:$PATH; export PATH
+export PATH GOPATH GOROOT
+
+test "$CGO_ENABLED" = "" && { CGO_ENABLED=0; export CGO_ENABLED; }
+
+
 # NOTE(anton2920): don't like Google spying on me.
 GOPROXY=direct; export GOPROXY
 GOSUMDB=off; export GOSUMDB
 
-# NOTE(anton2920): disable Go 1.11+ package management.
+# Disable Go 1.11+ package management.
 GO111MODULE=off; export GO111MODULE
-GOPATH=`go env GOPATH`:`pwd`; export GOPATH
+#GOPATH=`go env GOPATH`:`pwd`; export GOPATH
 
-test "$CGO_ENABLED" = "" && { CGO_ENABLED=0; export CGO_ENABLED; }
-test "$GO14" = "true" && . go14-env || {
+case $GODIST in
+go1|go14)
+	DFLAGS=-gcflags='-N -l'
+	MFLAGS=-gcflags='-m -m'
+	RFLAGS=-ldflags='-s -w'
+	SFLAGS=-gcflags='-S'
+	TCOUNT=""
+	test "$GODIST" = "go14" && GCFLAGS="-pack  -complete -nolocalimports"
+	test `go env GOARCH` = 386 && { GC=8g; LD=8l; } || { GC=6g; LD=6l; }
+	;;
+*)
 	grep 'import "C"' *.go >/dev/null 2>&1 && RACE= || {
 		test "`go env GOARCH`" = "386" && RACE= || RACE=-race
 	}
-}
+	PGO="-pgo off"
+	DFLAGS=-gcflags='all=-N -l'
+	MFLAGS=-gcflags='all=-m -m'
+	RFLAGS=-ldflags='all=-s -w'
+	SFLAGS=-gcflags='all=-S'
+	TCOUNT=-test.count=8
+	GC=compile; LD=link
+	;;
+esac
 
 STARTTIME=`now`
 
@@ -79,36 +110,30 @@ shift
 GPPTARGET=`grep -n gpp *.go? 2>/dev/null | cut -d ':' -f 1 | uniq | grep -v gpp`
 test "$GPPTARGET" != "" && run gpp -r
 
+GOFA=github.com/anton2920/gofa
+GOFILES=`echo *.go`
+
+go version
+
 case $TARGET in
 	'' | debug)
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0 -g
-		if test "$GO14" = "true"; then
-			run go build $VERBOSITYFLAGS -o $PROJECT $RACE -gcflags="-N -l" -tags gofadebug $@
-		else
-			run go build $VERBOSITYFLAGS -o $PROJECT $RACE -pgo off -gcflags="all=-N -l" -tags gofadebug $@
-		fi
+		run go build $VERBOSITYFLAGS -o $PROJECT $RACE $PGO "$DFLAGS" -tags gofadebug $@
 		;;
 	allocs | allocations)
-		printv go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-m -m"
-		if test "$GO14" = "true"; then
-			go build $VERBOSITYFLAGS -o /dev/null -gcflags="-m -m" 2>&1 | sort | uniq | grep "moved to heap" >$PROJECT.esc
-		else
-			go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-m -m" 2>&1 | sort | uniq | grep "moved to heap" >$PROJECT.esc
-		fi
+		printv go build $VERBOSITYFLAGS -o /dev/null "$MFLAGS"
+		go build $VERBOSITYFLAGS -o /dev/null "$MFLAGS" 2>&1 | sort | uniq | grep "moved to heap" >$PROJECT.esc
 		;;
 	allocs-plus | allocations-plus)
-		printv go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-m -m"
-		if test "$GO14" = "true"; then
-			go build $VERBOSITYFLAGS -o /dev/null -gcflags="-m" 2>&1 | sort | uniq | grep "escapes to heap" >$PROJECT.esc
-		else
-			go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-m -m" 2>&1 | sort | uniq | grep "escapes to heap" | grep " in " >$PROJECT.esc
-		fi
+		printv go build $VERBOSITYFLAGS -o /dev/null "$MFLAGS"
+		go build $VERBOSITYFLAGS -o /dev/null "$MFLAGS" 2>&1 | sort | uniq | grep "escapes to heap" | grep " in " >$PROJECT.esc
 		;;
 	clean)
 		run rm -f *_gpp.go $PROJECT $PROJECT.[sS] $PROJECT.esc $PROJECT.test $PROJECT.test.esc c.out cpu.pprof mem.pprof $ISPCFILES
 		run go clean -cache -modcache -testcache
 		run rm -rf `go env GOCACHE`
+		run rm -rf $GOPATH/pkg
 		run rm -rf /tmp/cover*
 		;;
 	check)
@@ -120,10 +145,10 @@ case $TARGET in
 		run ./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. $@
 		;;
 	check-bench-cmp | check-bench-compare)
-		run $0 check-bench -test.count=8 -test.bench=$1 | tee after
+		run $0 check-bench "$TCOUNT" -test.bench=$1 | tee after
 
 		git stash >/dev/null
-		run $0 check-bench -test.count=8 -test.bench=$1 |tee before
+		run $0 check-bench "$TCOUNT" -test.bench=$1 |tee before
 		git stash pop >/dev/null
 
 		OUTPUT=$PROJECT-diff.txt
@@ -166,15 +191,26 @@ case $TARGET in
 		run ./$PROJECT.test
 		;;
 	disas | disasm | disassembly)
-		printv go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-S"
-		go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-S" >$PROJECT.S 2>&1
+		printv go build $VERBOSITYFLAGS -o /dev/null "$SFLAGS"
+		go build $VERBOSITYFLAGS -o /dev/null "$SFLAGS" >$PROJECT.S 2>&1
 		;;
 	esc | escape | escape-analysis)
-		printv go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-m -m"
-		go build $VERBOSITYFLAGS -o /dev/null -gcflags="all=-m -m" >$PROJECT.esc 2>&1
+		printv go build $VERBOSITYFLAGS -o /dev/null "$MFLAGS"
+		go build $VERBOSITYFLAGS -o /dev/null "$MFLAGS" >$PROJECT.esc 2>&1
 		;;
 	fmt)
 		which goimports >/dev/null && run goimports -l -w *.go || run gofmt -l -s -w *.go
+		;;
+	nostd)
+		PKGPATH=$GOROOT/pkg/freebsd_amd64
+		if test "$1" = "-a"; then
+			run go install -tags gofanostd $@ $GOFA/...
+			run go install -tags gofanostd  -gcflags='-+' $@ $GOFA/nostd
+		fi
+		test -d $PKGPATH && run find $GOROOT/pkg/freebsd_amd64 -not -name '*.h' -delete
+		run go tool $GC -o $PROJECT.a -p _`pwd` $GCFLAGS -I $GOPATH/pkg/freebsd_amd64 $GOFILES
+		run go tool $LD -o $PROJECT -s -w -L $GOPATH/pkg/freebsd_amd64 $PROJECT.a
+		run rm -f $PROJECT.a
 		;;
 	objdump)
 		printv go tool objdump $@ $PROJECT
@@ -208,7 +244,7 @@ case $TARGET in
 		;;
 	release)
 		run buildISPC -O3
-		run go build $VERBOSITYFLAGS -o $PROJECT
+		run go build $VERBOSITYFLAGS -o $PROJECT "$RFLAGS" $@
 		;;
 	release-unsafe)
 		run buildISPC -O3
@@ -229,19 +265,15 @@ case $TARGET in
 		;;
 	test-msan)
 		CGO_ENABLED=1; export CGO_ENABLED
-		run buildISPC -O3
+		run buildISPC -O0
 		run $0 $VERBOSITYFLAGS vet
-		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off -msan -gcflags="all=-N -l" -tags gofadebug
+		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off -msan $PGO "$DFLAGS" -tags gofadebug
 		;;
 	test-race-cover)
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0 -g
-		if test "$GO14" = "true"; then
-			run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off $RACE -gcflags="-N -l" -tags gofadebug
-		else
-			run $0 $VERBOSITYFLAGS vet
-			run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off $RACE -cover -gcflags="all=-N -l" -tags gofadebug
-		fi
+		run $0 $VERBOSITYFLAGS vet
+		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off $RACE $PGO "$DFLAGS" -cover -tags gofadebug
 		;;
 	test-tracing)
 		run buildISPC -O3
@@ -253,10 +285,8 @@ case $TARGET in
 		run go build $VERBOSITYFLAGS -o $PROJECT -tags gofatrace
 		;;
 	vet)
-		if test ! "$GO14" = "true"; then
-			# run go vet $VERBOSITYFLAGS -unsafeptr=false
-			run go vet $VERBOSITYFLAGS
-		fi
+		# run go vet $VERBOSITYFLAGS -unsafeptr=false
+		run go vet $VERBOSITYFLAGS
 		;;
 	*)
 		printf "Target '%s' is not supported!\n" $TARGET >&2
