@@ -58,9 +58,14 @@ buildISPC()
 
 GOPATH=$HOME/go
 case $GO in
-1|103|1.0|1.0.3)  GODIST=go1  ;;
-14|143|1.4|1.4.3) GODIST=go14 ;;
-*)                GODIST=go   ;;
+1|10|103|1.0|1.0.3) GODIST=go1  ;;
+  11|112|1.1|1.1.2) GODIST=go11 ;;
+  12|122|1.2|1.2.2) GODIST=go12 ;;
+  13|133|1.3|1.3.3) GODIST=go13 ;;
+  14|143|1.4|1.4.3) GODIST=go14 ;;
+  15|154|1.5|1.5.4) GODIST=go15 ;;
+  16|164|1.6|1.6.4) GODIST=go16 ;;
+                 *) GODIST=go   ;;
 esac
 
 GOROOT=$GOPATH/dist/$GODIST
@@ -79,7 +84,7 @@ GO111MODULE=off; export GO111MODULE
 #GOPATH=`go env GOPATH`:`pwd`; export GOPATH
 
 case $GODIST in
-go1|go14)
+go1|go11|go12|go13|go14)
 	DFLAGS=-gcflags='-N -l'
 	MFLAGS=-gcflags='-m -m'
 	RFLAGS=-ldflags='-s -w'
@@ -87,6 +92,17 @@ go1|go14)
 	TCOUNT=""
 	test "$GODIST" = "go14" && GCFLAGS="-pack  -complete -nolocalimports"
 	test `go env GOARCH` = 386 && { GC=8g; LD=8l; } || { GC=6g; LD=6l; }
+	;;
+go15|go16)
+	grep 'import "C"' *.go >/dev/null 2>&1 && RACE= || {
+		test "`go env GOARCH`" = "386" && RACE= || RACE=-race
+	}
+	DFLAGS=-gcflags='-N -l'
+	MFLAGS=-gcflags='-m -m'
+	RFLAGS=-ldflags='-s -w'
+	SFLAGS=-gcflags='-S'
+	TCOUNT=-test.count=8
+	GC=compile; LD=link
 	;;
 *)
 	grep 'import "C"' *.go >/dev/null 2>&1 && RACE= || {
@@ -102,6 +118,14 @@ go1|go14)
 	;;
 esac
 
+case $GODIST in
+go1|go11|go12|go13) GOFANOSTD=gofanostd13 ;;
+              go14) GOFANOSTD=gofanostd14 ;;
+              go15) GOFANOSTD=gofanostd15 ;;
+              go16) GOFANOSTD=gofanostd16 ;;
+                 *) GOFANOSTD=gofanostdxx ;;
+esac
+
 STARTTIME=`now`
 
 TARGET=$1
@@ -114,9 +138,10 @@ GOFA=github.com/anton2920/gofa
 GOFILES=`echo *.go`
 
 go version
+test "$1" = "-std" && { GODEBUG=installgoroot=all go install std; shift; }
 
 case $TARGET in
-	'' | debug)
+	'' | '-' | debug)
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0 -g
 		run go build $VERBOSITYFLAGS -o $PROJECT $RACE $PGO "$DFLAGS" -tags gofadebug $@
@@ -205,7 +230,7 @@ case $TARGET in
 		PKGPATH=$GOROOT/pkg/freebsd_amd64
 		if test "$1" = "-a"; then
 			run go install -tags gofanostd $@ $GOFA/...
-			run go install -tags gofanostd  -gcflags='-+' $@ $GOFA/nostd
+			run go install -tags "gofanostd $GOFANOSTD"  -gcflags='-+' $@ $GOFA/nostd
 		fi
 		test -d $PKGPATH && run find $GOROOT/pkg/freebsd_amd64 -not -name '*.h' -delete
 		run go tool $GC -o $PROJECT.a -p _`pwd` $GCFLAGS -I $GOPATH/pkg/freebsd_amd64 $GOFILES
