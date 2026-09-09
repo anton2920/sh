@@ -74,7 +74,6 @@ export PATH GOPATH GOROOT
 
 test "$CGO_ENABLED" = "" && { CGO_ENABLED=0; export CGO_ENABLED; }
 
-
 # NOTE(anton2920): don't like Google spying on me.
 GOPROXY=direct; export GOPROXY
 GOSUMDB=off; export GOSUMDB
@@ -85,9 +84,14 @@ GO111MODULE=off; export GO111MODULE
 
 case $GODIST in
 go1|go11|go12|go13|go14)
+	grep 'import "C"' *.go >/dev/null 2>&1 && RACE= || {
+		test "`go env GOARCH`" = "386" && RACE= || {
+			test "$GODIST" = "go14" && RACE=-race || RACE=
+		}
+	}
 	DFLAGS=-gcflags='-N -l'
 	MFLAGS=-gcflags='-m -m'
-	RFLAGS=-ldflags='-s -w'
+	#RFLAGS=-ldflags='-s -w'
 	SFLAGS=-gcflags='-S'
 	TCOUNT=""
 	test "$GODIST" = "go14" && GCFLAGS="-pack  -complete -nolocalimports"
@@ -99,7 +103,7 @@ go15|go16)
 	}
 	DFLAGS=-gcflags='-N -l'
 	MFLAGS=-gcflags='-m -m'
-	RFLAGS=-ldflags='-s -w'
+	#RFLAGS=-ldflags='-s -w'
 	SFLAGS=-gcflags='-S'
 	TCOUNT=-test.count=8
 	GC=compile; LD=link
@@ -111,7 +115,7 @@ go15|go16)
 	PGO="-pgo off"
 	DFLAGS=-gcflags='all=-N -l'
 	MFLAGS=-gcflags='all=-m -m'
-	RFLAGS=-ldflags='all=-s -w'
+	#RFLAGS=-ldflags='all=-s -w'
 	SFLAGS=-gcflags='all=-S'
 	TCOUNT=-test.count=8
 	GC=compile; LD=link
@@ -132,7 +136,7 @@ TARGET=$1
 shift
 
 GPPTARGET=`grep -n gpp *.go? 2>/dev/null | cut -d ':' -f 1 | uniq | grep -v gpp`
-test "$GPPTARGET" != "" && run gpp -r
+#test "$GPPTARGET" != "" && run gpp -r
 
 GOFA=github.com/anton2920/gofa
 GOFILES=`echo *.go`
@@ -225,6 +229,11 @@ case $TARGET in
 		;;
 	fmt)
 		which goimports >/dev/null && run goimports -l -w *.go || run gofmt -l -s -w *.go
+		;;
+	msan)
+		CGO_ENABLED=1; export CGO_ENABLED
+		run buildISPC -O0 -g
+		run go build $VERBOSITYFLAGS -o $PROJECT -msan $PGO "$DFLAGS" -tags gofadebug $@
 		;;
 	nostd)
 		PKGPATH=$GOROOT/pkg/freebsd_amd64
