@@ -3,6 +3,8 @@
 PWD=`pwd`
 PROJECT=`basename $PWD`
 
+test "$1" = "-r" && { R=true; shift; }
+
 VERBOSITY=0
 VERBOSITYFLAGS=""
 while test "$1" = "-v"; do
@@ -94,6 +96,7 @@ go1|go11|go12|go13|go14)
 	#RFLAGS=-ldflags='-s -w'
 	SFLAGS=-gcflags='-S'
 	TCOUNT=""
+	VET=""
 	test "$GODIST" = "go14" && GCFLAGS="-pack  -complete -nolocalimports"
 	test `go env GOARCH` = 386 && { GC=8g; LD=8l; } || { GC=6g; LD=6l; }
 	;;
@@ -106,6 +109,7 @@ go15|go16)
 	#RFLAGS=-ldflags='-s -w'
 	SFLAGS=-gcflags='-S'
 	TCOUNT=-test.count=8
+	VET="go vet"
 	GC=compile; LD=link
 	;;
 *)
@@ -118,6 +122,7 @@ go15|go16)
 	#RFLAGS=-ldflags='all=-s -w'
 	SFLAGS=-gcflags='all=-S'
 	TCOUNT=-test.count=8
+	VET="go vet"
 	GC=compile; LD=link
 	;;
 esac
@@ -141,8 +146,8 @@ GPPTARGET=`grep -n gpp *.go? 2>/dev/null | cut -d ':' -f 1 | uniq | grep -v gpp`
 GOFA=github.com/anton2920/gofa
 GOFILES=`echo *.go`
 
-go version
-test "$1" = "-std" && { GODEBUG=installgoroot=all go install std; shift; }
+test "$R" = "" && go version
+# test "$1" = "-std" && { GODEBUG=installgoroot=all go install std; shift; }
 
 case $TARGET in
 	'' | '-' | debug)
@@ -166,18 +171,18 @@ case $TARGET in
 		run rm -rf /tmp/cover*
 		;;
 	check)
-		run $0 $VERBOSITYFLAGS test-race-cover
+		run $0 -r $VERBOSITYFLAGS test-race-cover
 		run ./$PROJECT.test $@
 		;;
 	check-bench)
-		run $0 $VERBOSITYFLAGS test
+		run $0 -r $VERBOSITYFLAGS test
 		run ./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. $@
 		;;
 	check-bench-cmp | check-bench-compare)
-		run $0 check-bench "$TCOUNT" -test.bench=$1 | tee after
+		run $0 -r check-bench "$TCOUNT" -test.bench=$1 | tee after
 
 		git stash >/dev/null
-		run $0 check-bench "$TCOUNT" -test.bench=$1 |tee before
+		run $0 -r check-bench "$TCOUNT" -test.bench=$1 |tee before
 		git stash pop >/dev/null
 
 		OUTPUT=$PROJECT-diff.txt
@@ -188,25 +193,25 @@ case $TARGET in
 		rm -f before after
 		;;
 	check-bench-cpu)
-		run $0 $VERBOSITYFLAGS test
+		run $0 -r $VERBOSITYFLAGS test
 
 		OUTPUT=$PROJECT-cpu.pprof
 		run ./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. -test.cpuprofile=$OUTPUT $@
 		echo Results saved in $OUTPUT
 		;;
 	check-bench-mem)
-		run $0 $VERBOSITYFLAGS test
+		run $0 -r $VERBOSITYFLAGS test
 
 		OUTPUT=$PROJECT-mem.pprof
 		run ./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. -test.memprofile=$OUTPUT $@
 		echo Results saved in $OUTPUT
 		;;
 	check-bench-tracing)
-		run $0 $VERBOSITYFLAGS test-tracing
+		run $0 -r $VERBOSITYFLAGS test-tracing
 		run ./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. $@
 		;;
 	check-cover)
-		run $0 $VERBOSITYFLAGS test-race-cover
+		run $0 -r $VERBOSITYFLAGS test-race-cover
 		run ./$PROJECT.test -test.coverprofile=c.out
 
 		OUTPUT=/tmp/coverage.html
@@ -216,7 +221,7 @@ case $TARGET in
 		run rm -f c.out
 		;;
 	check-msan)
-		run $0 $VERBOSITYFLAGS test-msan
+		run $0 -r $VERBOSITYFLAGS test-msan
 		run ./$PROJECT.test
 		;;
 	disas | disasm | disassembly)
@@ -251,7 +256,7 @@ case $TARGET in
 		go tool objdump $@ $PROJECT >$PROJECT.s
 		;;
 	pgo)
-		run $0 $VERBOSITYFLAGS test
+		run $0 -r $VERBOSITYFLAGS test
 
 		printv ./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. -test.count=8 -test.cpuprofile=$PROJECT-cpu.pprof
 		./$PROJECT.test -test.run=^Benchmark -test.benchmem -test.bench=. -test.count=8 -test.cpuprofile=$PROJECT-cpu.pprof | tee before
@@ -288,39 +293,35 @@ case $TARGET in
 			run go build $VERBOSITYFLAGS -o $PROJECT -gcflags="all=-B"
 		fi
 		;;
-	run)
-		run $0 $@
-		./$PROJECT
-		;;
 	test)
 		run buildISPC -O3
-		run $0 $VERBOSITYFLAGS vet
+		run $0 -r $VERBOSITYFLAGS vet
 		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off
 		;;
 	test-msan)
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0
-		run $0 $VERBOSITYFLAGS vet
+		run $0 -r $VERBOSITYFLAGS vet
 		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off -msan $PGO "$DFLAGS" -tags gofadebug
 		;;
 	test-race-cover)
 		CGO_ENABLED=1; export CGO_ENABLED
 		run buildISPC -O0 -g
-		run $0 $VERBOSITYFLAGS vet
+		run $0 -r $VERBOSITYFLAGS vet
 		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off $RACE $PGO "$DFLAGS" -cover -tags gofadebug
 		;;
 	test-tracing)
 		run buildISPC -O3
-		run $0 $VERBOSITYFLAGS vet
+		run $0 -r $VERBOSITYFLAGS vet
 		run go test $VERBOSITYFLAGS -c -o $PROJECT.test -vet=off -tags gofatrace
 		;;
 	tracing)
 		run buildISPC -O3
-		run go build $VERBOSITYFLAGS -o $PROJECT -tags gofatrace
+		run go build $VERBOSITYFLAGS -o $PROJECT -tags gofatrace $@
 		;;
 	vet)
 		# run go vet $VERBOSITYFLAGS -unsafeptr=false
-		run go vet $VERBOSITYFLAGS
+		run $VET $VERBOSITYFLAGS
 		;;
 	*)
 		printf "Target '%s' is not supported!\n" $TARGET >&2
