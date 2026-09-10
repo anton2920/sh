@@ -1,0 +1,6 @@
+#!/bin/sh
+
+PWD=`pwd`
+PROJECT=`basename $PWD`
+
+make-go $@ && GOGC=off GODEBUG=asyncpreemptoff=1 GOMAXPROCS=`nproc` ./$PROJECT
