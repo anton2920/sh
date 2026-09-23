@@ -74,6 +74,18 @@ case $GO in
 111|1.11|1.11.13) GODIST=go111 ;;
 112|1.12|1.12.17) GODIST=go112 ;;
 113|1.13|1.13.15) GODIST=go113 ;;
+114|1.14|1.14.15) GODIST=go114 ;;
+115|1.15|1.15.15) GODIST=go115 ;;
+116|1.16|1.16.15) GODIST=go116 ;;
+117|1.17|1.17.13) GODIST=go117 ;;
+118|1.18|1.18.10) GODIST=go118 ;;
+119|1.19|1.19.13) GODIST=go119 ;;
+120|1.20|1.20.14) GODIST=go120 ;;
+121|1.21|1.21.14) GODIST=go121 ;;
+122|1.22|1.22.12) GODIST=go122 ;;
+123|1.23|1.23.12) GODIST=go123 ;;
+124|1.24|1.24.13) GODIST=go124 ;;
+125|1.25|1.25.14) GODIST=go125 ;;
                *) GODIST=go    ;;
 esac
 
@@ -104,6 +116,7 @@ go1|go11|go12|go13|go14)
 	SFLAGS=-gcflags='-S'
 	TCOUNT=""
 	VET=""
+	NOSTDGCFLAGS=-gcflags='-+'
 	test "$GODIST" = "go14" && GCFLAGS="-pack  -complete -nolocalimports"
 	test `go env GOARCH` = 386 && { GC=8g; LD=8l; } || { GC=6g; LD=6l; }
 	;;
@@ -117,13 +130,19 @@ go15|go16|go17|go18|go19)
 	SFLAGS=-gcflags='-S'
 	TCOUNT=-test.count=8
 	VET="go vet"
+	NOSTDGCFLAGS=-gcflags='-+'
 	GCFLAGS="-pack  -complete -nolocalimports"
 	test "$GODIST" = "go19" && GCFLAGS="$GCFLAGS -c `nproc`"
 	GC=compile; LD=link
 	;;
 *)
 	grep 'import "C"' *.go >/dev/null 2>&1 && RACE= || {
-		test "`go env GOARCH`" = "386" && RACE= || RACE=-race
+		test "`go env GOARCH`" = "386" && RACE= || {
+			case $GODIST in
+			go114|go115|go116|go117|go118|go119) RACE=      ;;
+			                                  *) RACE=-race ;;
+			esac
+		}
 	}
 	#PGO="-pgo off"
 	DFLAGS=-gcflags='all=-N -l'
@@ -133,18 +152,34 @@ go15|go16|go17|go18|go19)
 	SFLAGS=-gcflags='all=-S'
 	TCOUNT=-test.count=8
 	VET="go vet"
+	case $GODIST in
+	go110|go111|go112|go113|go114|go115)
+		NOSTDGCFLAGS=-gcflags='-+'
+		;;
+	go116|go117|go118|go119|go120|go121)
+		NOSTDGCFLAGS=-gcflags='-+'
+		NOSTDASMFLAGS=-asmflags='-compiling-runtime'
+		;;
+	*)
+		NOSTDGCFLAGS=-gcflags='-+'
+		#NOSTDASMFLAGS=-asmflags='-std'
+		;;
+	esac
 	GCFLAGS="-pack  -complete -nolocalimports -c `nproc`"
 	GC=compile; LD=link
 	;;
 esac
 
 case $GODIST in
-             go1|go11|go12|go13) GOFANOSTD=gofanostd13  ;;
-                           go14) GOFANOSTD=gofanostd14  ;;
-                           go15) GOFANOSTD=gofanostd15  ;;
-go16|go17|go18|go19|go110|go111) GOFANOSTD=gofanostd16  ;;
-                    go112|go113) GOFANOSTD=gofanostd112 ;;
-                              *) GOFANOSTD=gofanostdxx  ;;
+                       go1|go11|go12|go13) GOFANOSTD=gofanostd13  ;;
+                                     go14) GOFANOSTD=gofanostd14  ;;
+                                     go15) GOFANOSTD=gofanostd15  ;;
+          go16|go17|go18|go19|go110|go111) GOFANOSTD=gofanostd16  ;;
+                  go112|go113|go114|go115) GOFANOSTD=gofanostd112 ;;
+                                    go116) GOFANOSTD=gofanostd116 ;;
+                                    go117) GOFANOSTD=gofanostd117 ;;
+go118|go119|go120|go121|go122|go123|go124|go125) GOFANOSTD=gofanostd118 ;;
+                                        *) GOFANOSTD=gofanostdxx  ;;
 esac
 
 STARTTIME=`now`
@@ -256,7 +291,7 @@ case $TARGET in
 		PKGPATH=$GOROOT/pkg/freebsd_amd64
 		if test "$1" = "-a"; then
 			run go install -tags gofanostd $@ $GOFA/...
-			run go install -tags "gofanostd $GOFANOSTD"  -gcflags='-+' $@ $GOFA/nostd
+			run go install -tags "gofanostd $GOFANOSTD"  $NOSTDGCFLAGS $NOSTDASMFLAGS $@ $GOFA/nostd
 		fi
 		test -d $PKGPATH && run find $GOROOT/pkg/freebsd_amd64 -not -name '*.h' -delete
 		run go tool $GC -o $PROJECT.a $GCFLAGS -I $GOPATH/pkg/freebsd_amd64 $GOFILES
