@@ -86,6 +86,8 @@ case $GO in
 123|1.23|1.23.12) GODIST=go123 ;;
 124|1.24|1.24.13) GODIST=go124 ;;
 125|1.25|1.25.14) GODIST=go125 ;;
+ 126|1.26|1.26.8) GODIST=go126 ;;
+ 127|1.27|1.27.1) GODIST=go127 ;;
                *) GODIST=go    ;;
 esac
 
@@ -171,15 +173,14 @@ go15|go16|go17|go18|go19)
 esac
 
 case $GODIST in
-                       go1|go11|go12|go13) GOFANOSTD=gofanostd13  ;;
-                                     go14) GOFANOSTD=gofanostd14  ;;
-                                     go15) GOFANOSTD=gofanostd15  ;;
-          go16|go17|go18|go19|go110|go111) GOFANOSTD=gofanostd16  ;;
-                  go112|go113|go114|go115) GOFANOSTD=gofanostd112 ;;
-                                    go116) GOFANOSTD=gofanostd116 ;;
-                                    go117) GOFANOSTD=gofanostd117 ;;
-go118|go119|go120|go121|go122|go123|go124|go125) GOFANOSTD=gofanostd118 ;;
-                                        *) GOFANOSTD=gofanostdxx  ;;
+             go1|go11|go12|go13) GOFANOSTD=gofanostd13  ;;
+                           go14) GOFANOSTD=gofanostd14  ;;
+                           go15) GOFANOSTD=gofanostd15  ;;
+go16|go17|go18|go19|go110|go111) GOFANOSTD=gofanostd16  ;;
+        go112|go113|go114|go115) GOFANOSTD=gofanostd112 ;;
+                          go116) GOFANOSTD=gofanostd116 ;;
+                          go117) GOFANOSTD=gofanostd117 ;;
+                              *) GOFANOSTD=gofanostd118 ;;
 esac
 
 STARTTIME=`now`
