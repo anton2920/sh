@@ -185,8 +185,7 @@ esac
 
 STARTTIME=`now`
 
-TARGET=$1
-shift
+test $# -gt 0 && { TARGET=$1; shift; }
 
 GPPTARGET=`grep -n gpp *.go? 2>/dev/null | cut -d ':' -f 1 | uniq | grep -v gpp`
 #test "$GPPTARGET" != "" && run gpp -r
