@@ -1,0 +1,31 @@
+#!/bin/sh
+
+PROJECT=`basename $0`
+
+usage()
+{
+	echo "usage: $PROJECT jail app [args...]" >&2
+	exit 1
+}
+
+while `dirname $0`/args $@; do
+	case $1 in
+	*) usage ;;
+	esac
+	shift
+done
+
+NAME=$1; test "$NAME" != "" || usage
+APP=$2;  test "$APP"  != "" || usage
+shift 2
+
+JAIL=/usr/local/jails/containers/$NAME
+X11=.X11-unix
+
+doas -u anton /usr/local/bin/xhost +local:$NAME
+test -e $JAIL/tmp/$X11/X0 || {
+	mkdir -p $JAIL/tmp/$X11
+	mount -t nullfs -o nocover /tmp/$X11 $JAIL/tmp/$X11
+}
+
+jexec $NAME /bin/sh -c "DISPLAY=:0 $APP $@"
